@@ -19,10 +19,7 @@ body{
   padding:20px;
 }
 
-.container{
-  max-width:1100px;
-  margin:auto;
-}
+.container{max-width:1100px;margin:auto;}
 
 .topo{
   display:flex;
@@ -33,14 +30,14 @@ body{
   margin-bottom:20px;
 }
 
-.logo-area h1{
-  margin:0;
-  color:#2ecc71;
-}
+.logo-area h1{margin:0;color:#2ecc71;}
+.subtitulo{font-size:13px;color:#ccc;}
 
-.subtitulo{
-  font-size:13px;
-  color:#ccc;
+.card{
+  background:#1c1c1c;
+  padding:15px;
+  border-radius:8px;
+  margin-bottom:20px;
 }
 
 button{
@@ -64,23 +61,8 @@ input,select{
   border:none;
 }
 
-.card{
-  background:#1c1c1c;
-  padding:15px;
-  border-radius:8px;
-  margin-bottom:20px;
-}
-
-table{
-  width:100%;
-  border-collapse:collapse;
-}
-
-th,td{
-  padding:8px;
-  border-bottom:1px solid #333;
-  text-align:center;
-}
+table{width:100%;border-collapse:collapse;}
+th,td{padding:8px;border-bottom:1px solid #333;text-align:center;}
 
 .modal{
   display:none;
@@ -100,6 +82,7 @@ th,td{
 }
 </style>
 </head>
+
 <body>
 
 <div class="container">
@@ -128,6 +111,14 @@ th,td{
 </div>
 
 <div class="card">
+<h3>Resumo Financeiro</h3>
+<p><strong>Total Investido:</strong> R$ <span id="totalInvestido">0</span></p>
+<p><strong>Total Vendido:</strong> R$ <span id="totalVendido">0</span></p>
+<p><strong>Lucro Total:</strong> R$ <span id="lucroTotal">0</span></p>
+<p><strong>Valor em Estoque:</strong> R$ <span id="valorEstoque">0</span></p>
+</div>
+
+<div class="card">
 <h3>Estoque</h3>
 <table>
 <thead>
@@ -152,7 +143,7 @@ th,td{
 </div>
 
 <div class="card">
-<h3>Gráfico de Lucro Mensal</h3>
+<h3>Lucro Mensal</h3>
 <canvas id="grafico"></canvas>
 </div>
 
@@ -181,136 +172,168 @@ let itemSelecionado = null;
 let grafico;
 
 function salvar(){
-localStorage.setItem("estoque",JSON.stringify(estoque));
-localStorage.setItem("vendas",JSON.stringify(vendas));
+  localStorage.setItem("estoque",JSON.stringify(estoque));
+  localStorage.setItem("vendas",JSON.stringify(vendas));
 }
 
 function cadastrar(){
-let item={
-nome:nome.value,
-linha:linha.value,
-custo:Number(custo.value),
-preco:Number(preco.value),
-quantidade:Number(quantidade.value)
-};
-estoque.push(item);
-salvar();
-atualizar();
+  let item={
+    nome:nome.value,
+    linha:linha.value,
+    custo:Number(custo.value),
+    preco:Number(preco.value),
+    quantidade:Number(quantidade.value)
+  };
+  estoque.push(item);
+  salvar();
+  atualizar();
 }
 
 function abrirModal(index){
-itemSelecionado=index;
-modalVenda.style.display="flex";
+  itemSelecionado=index;
+  modalVenda.style.display="flex";
 }
 
 function fecharModal(){
-modalVenda.style.display="none";
+  modalVenda.style.display="none";
 }
 
 function confirmarVenda(){
-let item=estoque[itemSelecionado];
-if(item.quantidade>0){
-item.quantidade--;
-let lucro=item.preco-item.custo;
-vendas.push({
-nome:item.nome,
-cliente:cliente.value,
-data:dataVenda.value,
-lucro:lucro
-});
-}
-salvar();
-fecharModal();
-atualizar();
+  let item=estoque[itemSelecionado];
+  if(item.quantidade>0){
+    item.quantidade--;
+    let lucro=item.preco-item.custo;
+    vendas.push({
+      nome:item.nome,
+      cliente:cliente.value,
+      data:dataVenda.value,
+      lucro:lucro,
+      preco:item.preco,
+      custo:item.custo
+    });
+  }
+  salvar();
+  fecharModal();
+  atualizar();
 }
 
 function excluirEstoque(i){
-estoque.splice(i,1);
-salvar();
-atualizar();
+  estoque.splice(i,1);
+  salvar();
+  atualizar();
 }
 
 function excluirVenda(i){
-vendas.splice(i,1);
-salvar();
-atualizar();
+  vendas.splice(i,1);
+  salvar();
+  atualizar();
 }
 
 function atualizar(){
-tabelaEstoque.innerHTML="";
-estoque.forEach((item,i)=>{
-tabelaEstoque.innerHTML+=`
-<tr>
-<td>${item.nome}</td>
-<td>${item.linha}</td>
-<td>${item.quantidade}</td>
-<td>R$ ${item.custo}</td>
-<td>R$ ${item.preco}</td>
-<td>
-<button class="btn-blue" onclick="abrirModal(${i})">Vender</button>
-<button class="btn-red" onclick="excluirEstoque(${i})">Excluir</button>
-</td>
-</tr>`;
-});
+  tabelaEstoque.innerHTML="";
+  estoque.forEach((item,i)=>{
+    tabelaEstoque.innerHTML+=`
+    <tr>
+    <td>${item.nome}</td>
+    <td>${item.linha}</td>
+    <td>${item.quantidade}</td>
+    <td>R$ ${item.custo}</td>
+    <td>R$ ${item.preco}</td>
+    <td>
+    <button class="btn-blue" onclick="abrirModal(${i})">Vender</button>
+    <button class="btn-red" onclick="excluirEstoque(${i})">Excluir</button>
+    </td>
+    </tr>`;
+  });
 
-tabelaVendas.innerHTML="";
-vendas.forEach((v,i)=>{
-tabelaVendas.innerHTML+=`
-<tr>
-<td>${v.nome}</td>
-<td>${v.cliente}</td>
-<td>${v.data}</td>
-<td>R$ ${v.lucro}</td>
-<td><button class="btn-red" onclick="excluirVenda(${i})">Excluir</button></td>
-</tr>`;
-});
+  tabelaVendas.innerHTML="";
+  vendas.forEach((v,i)=>{
+    tabelaVendas.innerHTML+=`
+    <tr>
+    <td>${v.nome}</td>
+    <td>${v.cliente}</td>
+    <td>${v.data}</td>
+    <td>R$ ${v.lucro}</td>
+    <td><button class="btn-red" onclick="excluirVenda(${i})">Excluir</button></td>
+    </tr>`;
+  });
 
-atualizarGrafico();
+  calcularResumo();
+  atualizarGrafico();
+}
+
+function calcularResumo(){
+  let totalInvestido=0;
+  let valorEstoque=0;
+  let totalVendido=0;
+  let lucroTotal=0;
+
+  estoque.forEach(item=>{
+    totalInvestido+=item.custo*item.quantidade;
+    valorEstoque+=item.preco*item.quantidade;
+  });
+
+  vendas.forEach(v=>{
+    totalVendido+=v.preco;
+    lucroTotal+=v.lucro;
+  });
+
+  totalInvestido+=vendas.reduce((s,v)=>s+v.custo,0);
+
+  totalInvestido = totalInvestido.toFixed(2);
+  totalVendido = totalVendido.toFixed(2);
+  lucroTotal = lucroTotal.toFixed(2);
+  valorEstoque = valorEstoque.toFixed(2);
+
+  document.getElementById("totalInvestido").innerText=totalInvestido;
+  document.getElementById("totalVendido").innerText=totalVendido;
+  document.getElementById("lucroTotal").innerText=lucroTotal;
+  document.getElementById("valorEstoque").innerText=valorEstoque;
 }
 
 function atualizarGrafico(){
-let meses={};
-vendas.forEach(v=>{
-let mes=v.data?.slice(0,7);
-if(!meses[mes])meses[mes]=0;
-meses[mes]+=v.lucro;
-});
+  let meses={};
+  vendas.forEach(v=>{
+    let mes=v.data?.slice(0,7);
+    if(!meses[mes])meses[mes]=0;
+    meses[mes]+=v.lucro;
+  });
 
-let labels=Object.keys(meses);
-let dados=Object.values(meses);
+  let labels=Object.keys(meses);
+  let dados=Object.values(meses);
 
-if(grafico)grafico.destroy();
+  if(grafico)grafico.destroy();
 
-grafico=new Chart(grafico,{
-type:"bar",
-data:{labels:labels,datasets:[{label:"Lucro Mensal",data:dados}]}
-});
+  grafico=new Chart(document.getElementById("grafico"),{
+    type:"bar",
+    data:{labels:labels,datasets:[{label:"Lucro Mensal",data:dados}]}
+  });
 }
 
 function exportarBackup(){
-const blob=new Blob([JSON.stringify({estoque,vendas})],{type:"application/json"});
-const link=document.createElement("a");
-link.href=URL.createObjectURL(blob);
-link.download="backup-dom.json";
-link.click();
+  const blob=new Blob([JSON.stringify({estoque,vendas})],{type:"application/json"});
+  const link=document.createElement("a");
+  link.href=URL.createObjectURL(blob);
+  link.download="backup-dom.json";
+  link.click();
 }
 
 function importarBackup(e){
-const reader=new FileReader();
-reader.onload=function(evt){
-let dados=JSON.parse(evt.target.result);
-estoque=dados.estoque||[];
-vendas=dados.vendas||[];
-salvar();
-atualizar();
-};
-reader.readAsText(e.target.files[0]);
+  const reader=new FileReader();
+  reader.onload=function(evt){
+    let dados=JSON.parse(evt.target.result);
+    estoque=dados.estoque||[];
+    vendas=dados.vendas||[];
+    salvar();
+    atualizar();
+  };
+  reader.readAsText(e.target.files[0]);
 }
 
 atualizar();
 
 if("serviceWorker" in navigator){
-navigator.serviceWorker.register("sw.js");
+  navigator.serviceWorker.register("sw.js");
 }
 </script>
 
