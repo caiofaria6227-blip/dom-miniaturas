@@ -245,7 +245,39 @@ atualizarTela();
 alert("Senha incorreta");
 }
 }
+function vender(index){
 
+if(minis[index].quantidade <= 0){
+alert("Sem estoque disponível!");
+return;
+}
+
+const nomeCliente = prompt("Nome do cliente:");
+if(!nomeCliente) return;
+
+const dataVenda = new Date().toLocaleDateString("pt-BR");
+
+const mini = minis[index];
+
+const lucroUnit = Number(mini.venda) - Number(mini.custo);
+
+const vendaObj = {
+nome: mini.nome,
+cliente: nomeCliente,
+data: dataVenda,
+lucro: lucroUnit
+};
+
+vendas.push(vendaObj);
+
+// diminui estoque
+mini.quantidade--;
+
+localStorage.setItem("domVendas", JSON.stringify(vendas));
+localStorage.setItem("domMiniaturas", JSON.stringify(minis));
+
+atualizarTela();
+}
 function editar(i){
 const m = minis[i];
 document.getElementById("nome").value = m.nome;
