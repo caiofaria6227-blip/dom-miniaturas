@@ -1,162 +1,21 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DOM Miniaturas</title>
-
-<link rel="manifest" href="manifest.json">
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-<style>
-body{
-    margin:0;
-    font-family:Arial;
-    background:#1f3d2b;
-    color:white;
-}
-header{
-    background:#14281d;
-    padding:15px;
-    text-align:center;
-    font-size:22px;
-    font-weight:bold;
-}
-.container{ padding:15px; }
-
-input, select{
-    width:100%;
-    padding:8px;
-    margin-bottom:10px;
-    border:none;
-    border-radius:8px;
-}
-
-button{
-    padding:10px;
-    border:none;
-    border-radius:8px;
-    cursor:pointer;
-    margin:5px 0;
-    font-weight:bold;
-}
-
-.btn-primary{ background:#f4c430; }
-.btn-danger{ background:#c0392b; color:white; }
-.btn-edit{ background:#3498db; color:white; }
-.btn-sell{ background:#27ae60; color:white; }
-
-.card{
-    background:#2e5b3c;
-    padding:10px;
-    border-radius:12px;
-    margin-bottom:10px;
-}
-
-img{
-    width:100%;
-    border-radius:8px;
-}
-
-canvas{
-    background:white;
-    border-radius:10px;
-    padding:10px;
-}
-</style>
-</head>
-<body>
-
-<header>DOM MINIATURAS</header>
-
-<div class="container">
-
-<h3>Adicionar Miniatura</h3>
-
-<input type="text" id="nome" placeholder="Nome">
-
-<select id="linha">
-<option>Mainline</option>
-<option>Premium</option>
-<option>Silver Series</option>
-<option>Super Treasure Hunt</option>
-<option>Treasure Hunt</option>
-<option>Boulevard</option>
-<option>Car Culture</option>
-<option>Team Transport</option>
-<option>Fast & Furious</option>
-<option>Matchbox</option>
-<option>Outras</option>
-</select>
-
-<input type="number" id="valor" placeholder="Valor">
-<input type="number" id="quantidade" placeholder="Quantidade">
-<input type="file" id="foto">
-
-<button class="btn-primary" onclick="salvarMini()">Salvar</button>
-
-<hr>
-
-<h3>Buscar / Filtrar</h3>
-<input type="text" id="busca" placeholder="Buscar por nome" onkeyup="atualizarTela()">
-
-<select id="filtroLinha" onchange="atualizarTela()">
-<option value="">Todas as linhas</option>
-<option>Mainline</option>
-<option>Premium</option>
-<option>Silver Series</option>
-<option>Super Treasure Hunt</option>
-<option>Treasure Hunt</option>
-<option>Boulevard</option>
-<option>Car Culture</option>
-<option>Team Transport</option>
-<option>Fast & Furious</option>
-<option>Matchbox</option>
-<option>Outras</option>
-</select>
-
-<hr>
-
-<h3>Marketplace</h3>
-<div id="lista"></div>
-
-<hr>
-
-<h3>📊 Potencial de Vendas</h3>
-<p id="totalEstoque"></p>
-<canvas id="grafico"></canvas>
-
-<hr>
-
-<button class="btn-primary" onclick="exportarBackup()">📥 Backup JSON</button>
-<button class="btn-primary" onclick="gerarPDF()">📄 Gerar Relatório PDF</button>
-<input type="file" onchange="importarBackup(event)">
-
-</div>
-
 <script>
 let minis = JSON.parse(localStorage.getItem("domMiniaturas")) || [];
+let vendas = JSON.parse(localStorage.getItem("domVendas")) || [];
 let editIndex = null;
 let grafico = null;
 
 function salvarLocal(){
     localStorage.setItem("domMiniaturas", JSON.stringify(minis));
+    localStorage.setItem("domVendas", JSON.stringify(vendas));
     atualizarTela();
 }
 
 function salvarMini(){
-    const nomeInput = document.getElementById("nome");
-    const linhaInput = document.getElementById("linha");
-    const valorInput = document.getElementById("valor");
-    const quantidadeInput = document.getElementById("quantidade");
+    const nome = document.getElementById("nome").value;
+    const linha = document.getElementById("linha").value;
+    const valor = parseFloat(document.getElementById("valor").value);
+    const quantidade = parseInt(document.getElementById("quantidade").value);
     const fotoInput = document.getElementById("foto");
-
-    const nome = nomeInput.value;
-    const linha = linhaInput.value;
-    const valor = parseFloat(valorInput.value);
-    const quantidade = parseInt(quantidadeInput.value);
 
     if(!nome || !valor || !quantidade){
         alert("Preencha os campos obrigatórios!");
@@ -171,7 +30,7 @@ function salvarMini(){
             linha,
             valor,
             quantidade,
-            foto: reader.result || null
+            foto: reader.result || (editIndex !== null ? minis[editIndex].foto : null)
         };
 
         if(editIndex !== null){
@@ -200,6 +59,7 @@ function atualizarTela(){
 
     lista.innerHTML="";
     let total=0;
+    let lucro=0;
 
     minis
     .filter(m => 
@@ -222,15 +82,39 @@ function atualizarTela(){
         </div>`;
     });
 
-    totalEstoque.innerText="Total projetado: R$ "+total.toFixed(2);
-    atualizarGrafico(total);
+    vendas.forEach(v=>{
+        lucro += v.valor;
+    });
+
+    totalEstoque.innerHTML=
+    "💰 Estoque: R$ "+total.toFixed(2)+
+    "<br>📈 Lucro Real: R$ "+lucro.toFixed(2);
+
+    atualizarGrafico(total,lucro);
 }
 
 function vender(i){
-    if(minis[i].quantidade>0){
-        minis[i].quantidade--;
-        salvarLocal();
+    if(minis[i].quantidade <= 0){
+        alert("Sem estoque!");
+        return;
     }
+
+    const cliente = prompt("Nome do cliente:");
+    if(!cliente) return;
+
+    const data = prompt("Data da venda (ex: 02/03/2026):");
+    if(!data) return;
+
+    minis[i].quantidade--;
+
+    vendas.push({
+        nome: minis[i].nome,
+        valor: minis[i].valor,
+        cliente: cliente,
+        data: data
+    });
+
+    salvarLocal();
 }
 
 function editar(i){
@@ -240,11 +124,14 @@ function editar(i){
     document.getElementById("valor").value=m.valor;
     document.getElementById("quantidade").value=m.quantidade;
     editIndex=i;
+    window.scrollTo(0,0);
 }
 
 function excluir(i){
-    minis.splice(i,1);
-    salvarLocal();
+    if(confirm("Excluir miniatura?")){
+        minis.splice(i,1);
+        salvarLocal();
+    }
 }
 
 function limpar(){
@@ -254,7 +141,7 @@ function limpar(){
     document.getElementById("foto").value="";
 }
 
-function atualizarGrafico(total){
+function atualizarGrafico(total,lucro){
     const ctx = document.getElementById("grafico").getContext("2d");
 
     if(grafico) grafico.destroy();
@@ -262,17 +149,22 @@ function atualizarGrafico(total){
     grafico = new Chart(ctx,{
         type:"bar",
         data:{
-            labels:["Estoque"],
+            labels:["Estoque","Lucro"],
             datasets:[{
-                label:"R$ Potencial",
-                data:[total]
+                label:"R$",
+                data:[total,lucro]
             }]
         }
     });
 }
 
 function exportarBackup(){
-    const blob=new Blob([JSON.stringify(minis)],{type:"application/json"});
+    const dados = {
+        minis:minis,
+        vendas:vendas
+    };
+
+    const blob=new Blob([JSON.stringify(dados)],{type:"application/json"});
     const a=document.createElement("a");
     a.href=URL.createObjectURL(blob);
     a.download="backup-dom-miniaturas.json";
@@ -283,7 +175,9 @@ function importarBackup(e){
     const file=e.target.files[0];
     const reader=new FileReader();
     reader.onload=()=>{
-        minis=JSON.parse(reader.result);
+        const dados=JSON.parse(reader.result);
+        minis=dados.minis || [];
+        vendas=dados.vendas || [];
         salvarLocal();
     }
     reader.readAsText(file);
@@ -297,8 +191,20 @@ async function gerarPDF(){
     doc.text("Relatório DOM Miniaturas",10,y);
     y+=10;
 
+    doc.text("Estoque:",10,y);
+    y+=8;
+
     minis.forEach(m=>{
         doc.text(`${m.nome} - ${m.linha} - R$${m.valor} x ${m.quantidade}`,10,y);
+        y+=8;
+    });
+
+    y+=10;
+    doc.text("Vendas:",10,y);
+    y+=8;
+
+    vendas.forEach(v=>{
+        doc.text(`${v.nome} - R$${v.valor} - ${v.cliente} - ${v.data}`,10,y);
         y+=8;
     });
 
@@ -307,7 +213,3 @@ async function gerarPDF(){
 
 atualizarTela();
 </script>
-
-</body>
-</html>
-
