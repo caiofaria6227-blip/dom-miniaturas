@@ -188,72 +188,75 @@ salvarObjeto(null);
 }
 }
 
-function atualizarTela(){
+function atualizarTela() {
+    const lista = document.getElementById("lista");
+    const resumo = document.getElementById("resumo");
+    const rankingDiv = document.getElementById("ranking");
+    const filtro = document.getElementById("filtroTipo").value; // Captura o filtro
 
-const lista = document.getElementById("lista");
-const resumo = document.getElementById("resumo");
-const rankingDiv = document.getElementById("ranking");
+    lista.innerHTML = "";
+    rankingDiv.innerHTML = "";
 
-lista.innerHTML="";
-rankingDiv.innerHTML="";
+    let potencialEstoque = 0;
+    let lucroEstoque = 0;
+    let lucroRealizado = 0;
+    let ranking = {};
 
-let potencialEstoque = 0;
-let lucroEstoque = 0;
-let lucroRealizado = 0;
-let ranking={};
+    // 🔹 Filtramos a lista para exibição, mas mantemos os cálculos globais
+    const minisExibidas = minis.filter(m => filtro === "Todos" || m.tipo === filtro);
 
-// 🔹 Cálculo estoque atual
-minis.forEach((mini,index)=>{
+    minis.forEach((mini, index) => {
+        const custo = Number(mini.custo);
+        const venda = Number(mini.venda);
+        const qtd = Number(mini.quantidade);
+        const lucroUnit = venda - custo;
 
-const custo = Number(mini.custo);
-const venda = Number(mini.venda);
-const qtd = Number(mini.quantidade);
+        // Cálculos continuam sendo do estoque TOTAL (independente do filtro)
+        potencialEstoque += venda * qtd;
+        lucroEstoque += lucroUnit * qtd;
 
-const lucroUnit = venda - custo;
+        if (!ranking[mini.tipo]) ranking[mini.tipo] = 0;
+        ranking[mini.tipo] += lucroUnit * qtd;
 
-potencialEstoque += venda * qtd;
-lucroEstoque += lucroUnit * qtd;
+        // Só adiciona no HTML se a miniatura passar pelo filtro
+        if (filtro === "Todos" || mini.tipo === filtro) {
+            lista.innerHTML += `
+            <div class="card">
+                ${mini.foto ? `<img src="${mini.foto}">` : ""}
+                <h4>${mini.nome}</h4>
+                <p><b>${mini.tipo}</b></p>
+                <p>Venda: R$ ${venda.toFixed(2)}</p>
+                <p>Custo: ${mostrarCusto ? "R$ " + custo.toFixed(2) : "****"}</p>
+                <p>Qtd: ${qtd}</p>
+                <button class="btn-sell" onclick="vender(${index})">Vendido</button>
+                <button class="btn-edit" onclick="editar(${index})">Editar</button>
+                <button class="btn-danger" onclick="excluir(${index})">Excluir</button>
+            </div>`;
+        }
+    });
 
-if(!ranking[mini.tipo]) ranking[mini.tipo]=0;
-ranking[mini.tipo]+=lucroUnit * qtd;
+    // 🔹 Cálculos de vendas realizadas (Global)
+    vendas.forEach(v => {
+        lucroRealizado += Number(v.lucro);
+    });
 
-lista.innerHTML+=`
-<div class="card">
-${mini.foto? `<img src="${mini.foto}">`:""}
-<h4>${mini.nome}</h4>
-<p><b>${mini.tipo}</b></p>
-<p>Venda: R$ ${venda.toFixed(2)}</p>
-<p>Custo: ${mostrarCusto ? "R$ "+custo.toFixed(2) : "****"}</p>
-<p>Qtd: ${qtd}</p>
-<button class="btn-sell" onclick="vender(${index})">Vendido</button>
-<button class="btn-edit" onclick="editar(${index})">Editar</button>
-<button class="btn-danger" onclick="excluir(${index})">Excluir</button>
-</div>`;
-});
+    const lucroTotalProjetado = lucroEstoque + lucroRealizado;
 
-// 🔹 Cálculo vendas realizadas
-vendas.forEach(v=>{
-lucroRealizado += Number(v.lucro);
-});
+    resumo.innerHTML = `
+    📦 Potencial Estoque: R$ ${potencialEstoque.toFixed(2)} <br>
+    💰 Lucro Realizado: R$ ${lucroRealizado.toFixed(2)} <br>
+    🧠 Lucro Total Projetado: R$ ${lucroTotalProjetado.toFixed(2)}
+    `;
 
-const lucroTotalProjetado = lucroEstoque + lucroRealizado;
+    atualizarGrafico(potencialEstoque, lucroTotalProjetado);
 
-// 🔹 Exibir resumo profissional
-resumo.innerHTML = `
-📦 Potencial Estoque: R$ ${potencialEstoque.toFixed(2)} <br>
-💰 Lucro Realizado: R$ ${lucroRealizado.toFixed(2)} <br>
-🧠 Lucro Total Projetado: R$ ${lucroTotalProjetado.toFixed(2)}
-`;
-
-atualizarGrafico(potencialEstoque,lucroTotalProjetado);
-
-// 🔹 Ranking
-Object.entries(ranking)
-.sort((a,b)=>b[1]-a[1])
-.forEach(([linha,valor])=>{
-rankingDiv.innerHTML += `<p>${linha}: R$ ${valor.toFixed(2)}</p>`;
-});
+    Object.entries(ranking)
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([linha, valor]) => {
+            rankingDiv.innerHTML += `<p>${linha}: R$ ${valor.toFixed(2)}</p>`;
+        });
 }
+
 function revelarCustos(){
 const senha = prompt("Digite a senha:");
 if(senha === "DOM"){
