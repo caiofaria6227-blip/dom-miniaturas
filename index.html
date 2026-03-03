@@ -1,134 +1,79 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DOM Miniaturas</title>
 
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#2ecc71">
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js"></script>
 
 <style>
-*{box-sizing:border-box;}
-
 body{
-  font-family:Arial, sans-serif;
-  background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
-  color:white;
-  margin:0;
-  padding:15px;
+font-family:Arial;
+background:#1b3a2f;
+color:white;
+margin:0;
+padding:20px;
 }
 
-.container{
-  max-width:100%;
-  margin:auto;
-}
-
-.topo{
-  display:flex;
-  flex-direction:column;
-  gap:5px;
-  border-bottom:2px solid #2ecc71;
-  padding-bottom:10px;
-  margin-bottom:20px;
-}
-
-.logo-area h1{
-  margin:0;
-  color:#2ecc71;
-  font-size:22px;
-}
-
-.subtitulo{
-  font-size:12px;
-  color:#ccc;
+h1{
+text-align:center;
+color:#4CAF50;
 }
 
 .card{
-  background:#1c1c1c;
-  padding:15px;
-  border-radius:12px;
-  margin-bottom:20px;
-  box-shadow:0 4px 15px rgba(0,0,0,0.4);
+background:#244f3f;
+padding:15px;
+margin-bottom:15px;
+border-radius:10px;
+}
+
+input, select{
+width:100%;
+padding:8px;
+margin:5px 0;
+border-radius:5px;
+border:none;
 }
 
 button{
-  padding:10px;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-  margin-top:6px;
-  width:100%;
-  font-size:14px;
-  font-weight:bold;
+padding:10px;
+margin-top:5px;
+border:none;
+border-radius:6px;
+cursor:pointer;
+font-weight:bold;
 }
 
-.btn-green{background:#2ecc71;color:white;}
-.btn-blue{background:#3498db;color:white;}
-.btn-red{background:#e74c3c;color:white;}
-.btn-yellow{background:#f1c40f;color:black;}
-
-input,select{
-  width:100%;
-  padding:10px;
-  margin:6px 0;
-  border-radius:6px;
-  border:none;
-  font-size:14px;
+.btn{
+background:#4CAF50;
+color:white;
 }
 
-table{
-  width:100%;
-  border-collapse:collapse;
-  font-size:12px;
-}
-
-th,td{
-  padding:6px;
-  border-bottom:1px solid #333;
-  text-align:center;
+.btn-danger{
+background:#b33939;
+color:white;
 }
 
 canvas{
-  width:100% !important;
-  height:auto !important;
-}
-
-.modal{
-  display:none;
-  position:fixed;
-  top:0;left:0;
-  width:100%;height:100%;
-  background:rgba(0,0,0,0.85);
-  justify-content:center;
-  align-items:center;
-}
-
-.modal-content{
-  background:#222;
-  padding:20px;
-  border-radius:12px;
-  width:90%;
-  max-width:350px;
+background:#244f3f;
+border-radius:10px;
+margin-top:20px;
 }
 </style>
 </head>
 
 <body>
 
-<div class="container">
-
-<div class="topo">
-  <div class="logo-area">
-    <h1>DOM Miniaturas</h1>
-    <span class="subtitulo">Controle de Estoque & Vendas</span>
-  </div>
-</div>
+<h1>DOM Miniaturas</h1>
 
 <div class="card">
-<h3>Cadastrar no Estoque</h3>
+<h2>Adicionar Estoque</h2>
+
 <input id="nome" placeholder="Nome da mini">
 <select id="linha">
 <option>Mainline</option>
@@ -137,247 +82,67 @@ canvas{
 <option>Silver Series</option>
 <option>Premium</option>
 </select>
-<input id="custo" type="number" placeholder="Valor pago">
-<input id="preco" type="number" placeholder="Valor de venda">
+
+<input id="valorPago" type="number" placeholder="Valor pago">
+<input id="valorVenda" type="number" placeholder="Valor desejado venda">
 <input id="quantidade" type="number" placeholder="Quantidade">
-<button class="btn-green" onclick="cadastrar()">Cadastrar</button>
+
+<button class="btn" onclick="addEstoque()">Cadastrar</button>
 </div>
 
 <div class="card">
-<h3>Resumo Financeiro</h3>
-<p><strong>Total Investido:</strong> R$ <span id="totalInvestido">0</span></p>
-<p><strong>Total Vendido:</strong> R$ <span id="totalVendido">0</span></p>
-<p><strong>Lucro Total:</strong> R$ <span id="lucroTotal">0</span></p>
-<p><strong>Valor em Estoque:</strong> R$ <span id="valorEstoque">0</span></p>
+<h2>Resumo</h2>
+<p id="lucroReal">Lucro Real: R$ 0</p>
+<p id="potencial">Potencial em Estoque: R$ 0</p>
 </div>
 
-<div class="card">
-<h3>Estoque</h3>
-<table>
-<thead>
-<tr>
-<th>Nome</th><th>Linha</th><th>Qtd</th><th>Custo</th><th>Venda</th><th>Ações</th>
-</tr>
-</thead>
-<tbody id="tabelaEstoque"></tbody>
-</table>
-</div>
+<script type="module">
 
-<div class="card">
-<h3>Vendas</h3>
-<table>
-<thead>
-<tr>
-<th>Nome</th><th>Cliente</th><th>Data</th><th>Lucro</th><th>Ações</th>
-</tr>
-</thead>
-<tbody id="tabelaVendas"></tbody>
-</table>
-</div>
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-<div class="card">
-<h3>Lucro Mensal</h3>
-<canvas id="grafico"></canvas>
-</div>
+const firebaseConfig = {
+apiKey: "AIzaSyAiqv-9d2bUufI6Ez3TybX4gnX9b1ybBkk",
+authDomain: "dom-miniaturas.firebaseapp.com",
+projectId: "dom-miniaturas",
+storageBucket: "dom-miniaturas.firebasestorage.app",
+messagingSenderId: "460160940862",
+appId: "1:460160940862:web:bd8f4e092f12e407428a6f"
+};
 
-<div class="card">
-<h3>Backup</h3>
-<button class="btn-yellow" onclick="exportarBackup()">Exportar Backup</button>
-<input type="file" onchange="importarBackup(event)">
-</div>
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-</div>
+window.addEstoque = async function(){
+const nome = document.getElementById("nome").value;
+const linha = document.getElementById("linha").value;
+const valorPago = parseFloat(document.getElementById("valorPago").value);
+const valorVenda = parseFloat(document.getElementById("valorVenda").value);
+const quantidade = parseInt(document.getElementById("quantidade").value);
 
-<div class="modal" id="modalVenda">
-<div class="modal-content">
-<h3>Registrar Venda</h3>
-<input id="cliente" placeholder="Nome do cliente">
-<input id="dataVenda" type="date">
-<button class="btn-green" onclick="confirmarVenda()">Confirmar</button>
-<button class="btn-red" onclick="fecharModal()">Cancelar</button>
-</div>
-</div>
+await addDoc(collection(db, "estoque"), {
+nome, linha, valorPago, valorVenda, quantidade
+});
 
-<script>
-let estoque = JSON.parse(localStorage.getItem("estoque")) || [];
-let vendas = JSON.parse(localStorage.getItem("vendas")) || [];
-let itemSelecionado = null;
-let grafico;
-
-function salvar(){
-  localStorage.setItem("estoque",JSON.stringify(estoque));
-  localStorage.setItem("vendas",JSON.stringify(vendas));
+alert("Mini cadastrada com backup na nuvem!");
+calcular();
 }
 
-function cadastrar(){
-  if(!nome.value || !custo.value || !preco.value || !quantidade.value){
-    alert("Preencha todos os campos!");
-    return;
-  }
+async function calcular(){
+let potencial = 0;
 
-  let item={
-    nome:nome.value,
-    linha:linha.value,
-    custo:Number(custo.value),
-    preco:Number(preco.value),
-    quantidade:Number(quantidade.value)
-  };
+const querySnapshot = await getDocs(collection(db, "estoque"));
+querySnapshot.forEach((doc)=>{
+const data = doc.data();
+potencial += data.valorVenda * data.quantidade;
+});
 
-  estoque.push(item);
-  nome.value=""; custo.value=""; preco.value=""; quantidade.value="";
-  salvar();
-  atualizar();
+document.getElementById("potencial").innerText =
+"Potencial em Estoque: R$ " + potencial.toFixed(2);
 }
 
-function abrirModal(index){
-  itemSelecionado=index;
-  modalVenda.style.display="flex";
-}
+calcular();
 
-function fecharModal(){
-  modalVenda.style.display="none";
-}
-
-function confirmarVenda(){
-  let item=estoque[itemSelecionado];
-  if(item.quantidade>0){
-    item.quantidade--;
-    let lucro=item.preco-item.custo;
-
-    vendas.push({
-      nome:item.nome,
-      cliente:cliente.value,
-      data:dataVenda.value,
-      lucro:lucro,
-      preco:item.preco,
-      custo:item.custo
-    });
-  }
-
-  cliente.value="";
-  dataVenda.value="";
-  salvar();
-  fecharModal();
-  atualizar();
-}
-
-function excluirEstoque(i){
-  if(confirm("Excluir item do estoque?")){
-    estoque.splice(i,1);
-    salvar();
-    atualizar();
-  }
-}
-
-function excluirVenda(i){
-  if(confirm("Excluir venda?")){
-    vendas.splice(i,1);
-    salvar();
-    atualizar();
-  }
-}
-
-function atualizar(){
-  tabelaEstoque.innerHTML="";
-  estoque.forEach((item,i)=>{
-    tabelaEstoque.innerHTML+=`
-    <tr>
-    <td>${item.nome}</td>
-    <td>${item.linha}</td>
-    <td>${item.quantidade}</td>
-    <td>R$ ${item.custo}</td>
-    <td>R$ ${item.preco}</td>
-    <td>
-    <button class="btn-blue" onclick="abrirModal(${i})">Vender</button>
-    <button class="btn-red" onclick="excluirEstoque(${i})">Excluir</button>
-    </td>
-    </tr>`;
-  });
-
-  tabelaVendas.innerHTML="";
-  vendas.forEach((v,i)=>{
-    tabelaVendas.innerHTML+=`
-    <tr>
-    <td>${v.nome}</td>
-    <td>${v.cliente}</td>
-    <td>${v.data}</td>
-    <td>R$ ${v.lucro}</td>
-    <td><button class="btn-red" onclick="excluirVenda(${i})">Excluir</button></td>
-    </tr>`;
-  });
-
-  calcularResumo();
-  atualizarGrafico();
-}
-
-function calcularResumo(){
-  let totalInvestido=0;
-  let valorEstoque=0;
-  let totalVendido=0;
-  let lucroTotal=0;
-
-  estoque.forEach(item=>{
-    totalInvestido+=item.custo*item.quantidade;
-    valorEstoque+=item.preco*item.quantidade;
-  });
-
-  vendas.forEach(v=>{
-    totalVendido+=v.preco;
-    lucroTotal+=v.lucro;
-  });
-
-  totalInvestido+=vendas.reduce((s,v)=>s+v.custo,0);
-
-  document.getElementById("totalInvestido").innerText=totalInvestido.toFixed(2);
-  document.getElementById("totalVendido").innerText=totalVendido.toFixed(2);
-  document.getElementById("lucroTotal").innerText=lucroTotal.toFixed(2);
-  document.getElementById("valorEstoque").innerText=valorEstoque.toFixed(2);
-}
-
-function atualizarGrafico(){
-  let meses={};
-  vendas.forEach(v=>{
-    let mes=v.data?.slice(0,7);
-    if(!meses[mes])meses[mes]=0;
-    meses[mes]+=v.lucro;
-  });
-
-  let labels=Object.keys(meses);
-  let dados=Object.values(meses);
-
-  if(grafico)grafico.destroy();
-
-  grafico=new Chart(document.getElementById("grafico"),{
-    type:"bar",
-    data:{labels:labels,datasets:[{label:"Lucro Mensal",data:dados}]}
-  });
-}
-
-function exportarBackup(){
-  const blob=new Blob([JSON.stringify({estoque,vendas})],{type:"application/json"});
-  const link=document.createElement("a");
-  link.href=URL.createObjectURL(blob);
-  link.download="backup-dom.json";
-  link.click();
-}
-
-function importarBackup(e){
-  const reader=new FileReader();
-  reader.onload=function(evt){
-    let dados=JSON.parse(evt.target.result);
-    estoque=dados.estoque||[];
-    vendas=dados.vendas||[];
-    salvar();
-    atualizar();
-  };
-  reader.readAsText(e.target.files[0]);
-}
-
-atualizar();
-
-if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js");
-}
 </script>
 
 </body>
