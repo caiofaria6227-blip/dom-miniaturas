@@ -2,375 +2,279 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DOM Miniaturas</title>
-
-<link rel="manifest" href="manifest.json">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
 body{
-    margin:0;
     font-family:Arial;
-    background:#1f3d2b;
+    margin:0;
+    background:#111;
     color:white;
 }
+
 header{
-    background:#14281d;
+    background:#2ecc71;
     padding:15px;
     text-align:center;
-    font-size:22px;
     font-weight:bold;
-}
-.container{ padding:15px; }
-
-input, select{
-    width:100%;
-    padding:8px;
-    margin-bottom:10px;
-    border:none;
-    border-radius:8px;
 }
 
 button{
-    padding:10px;
+    margin:5px;
+    padding:8px;
     border:none;
-    border-radius:8px;
+    border-radius:5px;
     cursor:pointer;
-    margin:5px 0;
-    font-weight:bold;
 }
 
-.btn-primary{ background:#f4c430; }
-.btn-danger{ background:#c0392b; color:white; }
-.btn-edit{ background:#3498db; color:white; }
-.btn-sell{ background:#27ae60; color:white; }
+.btn-danger{background:#e74c3c;color:white;}
+.btn-edit{background:#3498db;color:white;}
+.btn-sell{background:#f1c40f;}
 
 .card{
-    background:#2e5b3c;
+    background:#222;
     padding:10px;
-    border-radius:12px;
-    margin-bottom:10px;
+    margin:10px;
+    border-radius:8px;
 }
 
 img{
     width:100%;
-    border-radius:8px;
+    max-height:180px;
+    object-fit:cover;
+    border-radius:5px;
+}
+
+input, select{
+    width:100%;
+    margin:5px 0;
+    padding:6px;
 }
 
 canvas{
     background:white;
     border-radius:10px;
-    padding:10px;
-}
-
-/* POPUP */
-.modal{
-    display:none;
-    position:fixed;
-    top:0;
-    left:0;
-    width:100%;
-    height:100%;
-    background:rgba(0,0,0,0.6);
-    justify-content:center;
-    align-items:center;
-}
-
-.modal-content{
-    background:#2e5b3c;
-    padding:20px;
-    border-radius:12px;
-    width:90%;
-    max-width:400px;
 }
 </style>
 </head>
-
 <body>
 
-<header>DOM MINIATURAS</header>
+<header>
+DOM MINIATURAS
+<br>
+<button onclick="ativarCliente()">Modo Cliente</button>
+<button onclick="ativarAdmin()">Modo Admin</button>
+</header>
 
-<div class="container">
+<div style="padding:10px;">
 
-<h3>Adicionar Miniatura</h3>
+<h3>Adicionar Mini</h3>
 
-<input type="text" id="nome" placeholder="Nome">
-
+<input id="nome" placeholder="Nome">
 <select id="linha">
 <option>Mainline</option>
 <option>Premium</option>
-<option>Silver Series</option>
-<option>Super Treasure Hunt</option>
-<option>Treasure Hunt</option>
-<option>Boulevard</option>
-<option>Car Culture</option>
-<option>Team Transport</option>
-<option>Fast & Furious</option>
+<option>Silver</option>
 <option>Temáticos</option>
-<option>Matchbox</option>
-<option>Outras</option>
 </select>
+<input id="valor" type="number" placeholder="Valor de venda">
+<input id="custo" type="number" placeholder="Custo">
+<input id="quantidade" type="number" placeholder="Quantidade">
+<input id="foto" type="file">
+<button onclick="adicionar()">Adicionar</button>
 
-<input type="number" id="valor" placeholder="Valor de venda">
-<input type="number" id="custo" placeholder="Quanto você pagou">
-<input type="number" id="quantidade" placeholder="Quantidade">
-<input type="file" id="foto">
+<h3 id="totalEstoque"></h3>
+<h3 id="lucroTotal"></h3>
 
-<button class="btn-primary" onclick="salvarMini()">Salvar</button>
-
-<hr>
-
-<h3>Marketplace</h3>
-<div id="lista"></div>
-
-<hr>
-
-<h3>📊 Financeiro</h3>
-<p id="totalEstoque"></p>
-<p id="lucroTotal"></p>
 <canvas id="grafico"></canvas>
 
-<hr>
-
-<h3>🏆 Ranking de Lucro por Linha</h3>
+<h3>Ranking de Lucro</h3>
 <div id="ranking"></div>
 
-<hr>
+<h3>Catálogo</h3>
+<div id="lista"></div>
 
-<button class="btn-primary" onclick="exportarBackup()">📥 Backup JSON</button>
-<button class="btn-primary" onclick="gerarPDF()">📄 Gerar PDF</button>
-
-</div>
-
-<!-- POPUP VENDA -->
-<div class="modal" id="popupVenda">
-<div class="modal-content">
-<h3>Registrar Venda</h3>
-<input type="text" id="cliente" placeholder="Nome do cliente">
-<input type="date" id="dataVenda">
-<button class="btn-primary" onclick="confirmarVenda()">Confirmar</button>
-<button class="btn-danger" onclick="fecharPopup()">Cancelar</button>
-</div>
 </div>
 
 <script>
+let minis = JSON.parse(localStorage.getItem("minis")) || [];
+let modo = "admin";
+let grafico;
 
-let minis = JSON.parse(localStorage.getItem("domMiniaturas")) || [];
-let editIndex = null;
-let vendaIndex = null;
-let grafico = null;
+function salvar(){
+    localStorage.setItem("minis",JSON.stringify(minis));
+}
 
-function salvarLocal(){
-    localStorage.setItem("domMiniaturas", JSON.stringify(minis));
+function ativarCliente(){
+    modo="cliente";
     atualizarTela();
 }
 
-function salvarMini(){
-
-    const nome = document.getElementById("nome").value;
-    const linha = document.getElementById("linha").value;
-    const valor = parseFloat(document.getElementById("valor").value);
-    const custo = parseFloat(document.getElementById("custo").value);
-    const quantidade = parseInt(document.getElementById("quantidade").value);
-    const fotoInput = document.getElementById("foto");
-
-    if(!nome || !valor || !custo || !quantidade){
-        alert("Preencha todos os campos!");
-        return;
+function ativarAdmin(){
+    const senha=prompt("Digite a senha:");
+    if(senha==="DOM"){
+        modo="admin";
+        atualizarTela();
+    }else{
+        alert("Senha incorreta!");
     }
+}
 
-    const reader = new FileReader();
+function adicionar(){
+    const nome=document.getElementById("nome").value;
+    const linha=document.getElementById("linha").value;
+    const valor=parseFloat(document.getElementById("valor").value);
+    const custo=parseFloat(document.getElementById("custo").value);
+    const quantidade=parseInt(document.getElementById("quantidade").value);
+    const fotoInput=document.getElementById("foto");
 
-    reader.onload = function(){
+    if(!nome || !valor || !custo || !quantidade) return;
 
-        const nova = {
-            nome,
-            linha,
-            valor,
-            custo,
-            quantidade,
-            foto: reader.result || (editIndex !== null ? minis[editIndex].foto : null),
-            vendidos: editIndex !== null ? minis[editIndex].vendidos : []
-        };
-
-        if(editIndex !== null){
-            minis[editIndex] = nova;
-            editIndex = null;
-        } else {
-            minis.push(nova);
-        }
-
-        salvarLocal();
-        limpar();
+    const reader=new FileReader();
+    reader.onload=function(){
+        minis.push({
+            nome,linha,valor,custo,quantidade,
+            foto:reader.result,
+            vendidos:[]
+        });
+        salvar();
+        atualizarTela();
     }
 
     if(fotoInput.files[0]){
         reader.readAsDataURL(fotoInput.files[0]);
-    } else {
-        reader.onload();
+    }else{
+        minis.push({nome,linha,valor,custo,quantidade,foto:null,vendidos:[]});
+        salvar();
+        atualizarTela();
     }
-}
-
-function atualizarTela(){
-
-    const lista = document.getElementById("lista");
-    const rankingDiv = document.getElementById("ranking");
-
-    lista.innerHTML="";
-    rankingDiv.innerHTML="";
-
-    let totalEstoque=0;
-    let lucroReal=0;
-    let lucroPorLinha={};
-
-    minis.forEach((mini,index)=>{
-
-        if(!mini.vendidos){
-            mini.vendidos=[];
-        }
-
-        totalEstoque += mini.valor * mini.quantidade;
-
-        mini.vendidos.forEach(v=>{
-            const lucroUnitario = mini.valor - mini.custo;
-            lucroReal += lucroUnitario;
-
-            if(!lucroPorLinha[mini.linha]){
-                lucroPorLinha[mini.linha]=0;
-            }
-            lucroPorLinha[mini.linha]+=lucroUnitario;
-        });
-
-        lista.innerHTML+=`
-        <div class="card">
-        ${mini.foto? `<img src="${mini.foto}">`:""}
-        <h4>${mini.nome}</h4>
-        <p>${mini.linha}</p>
-        <p>Venda: R$ ${mini.valor.toFixed(2)}</p>
-        <p>Custo: R$ ${mini.custo.toFixed(2)}</p>
-        <p>Qtd: ${mini.quantidade}</p>
-        <p>Vendidos: ${mini.vendidos.length}</p>
-        <button class="btn-sell" onclick="abrirPopup(${index})">Vendido</button>
-        <button class="btn-edit" onclick="editar(${index})">Editar</button>
-        <button class="btn-danger" onclick="excluir(${index})">Excluir</button>
-        </div>`;
-    });
-
-    const rankingOrdenado = Object.entries(lucroPorLinha).sort((a,b)=> b[1]-a[1]);
-
-    rankingOrdenado.forEach((item,pos)=>{
-        rankingDiv.innerHTML+=`
-        <div class="card">
-        <h4>${pos+1}º - ${item[0]}</h4>
-        <p>Lucro: R$ ${item[1].toFixed(2)}</p>
-        </div>`;
-    });
-
-    document.getElementById("totalEstoque").innerText="Potencial em estoque: R$ "+totalEstoque.toFixed(2);
-    document.getElementById("lucroTotal").innerText="Lucro realizado: R$ "+lucroReal.toFixed(2);
-
-    atualizarGrafico(totalEstoque,lucroReal);
-}
-
-function abrirPopup(i){
-    vendaIndex=i;
-    document.getElementById("popupVenda").style.display="flex";
-}
-
-function fecharPopup(){
-    document.getElementById("popupVenda").style.display="none";
-}
-
-function confirmarVenda(){
-
-    const cliente = document.getElementById("cliente").value;
-    const data = document.getElementById("dataVenda").value;
-
-    if(!cliente || !data){
-        alert("Preencha cliente e data!");
-        return;
-    }
-
-    if(minis[vendaIndex].quantidade>0){
-        minis[vendaIndex].quantidade--;
-
-        minis[vendaIndex].vendidos.push({cliente,data});
-    }
-
-    fecharPopup();
-    salvarLocal();
-}
-
-function editar(i){
-    const m=minis[i];
-    document.getElementById("nome").value=m.nome;
-    document.getElementById("linha").value=m.linha;
-    document.getElementById("valor").value=m.valor;
-    document.getElementById("custo").value=m.custo;
-    document.getElementById("quantidade").value=m.quantidade;
-    editIndex=i;
 }
 
 function excluir(i){
     minis.splice(i,1);
-    salvarLocal();
+    salvar();
+    atualizarTela();
 }
 
-function limpar(){
-    document.getElementById("nome").value="";
-    document.getElementById("valor").value="";
-    document.getElementById("custo").value="";
-    document.getElementById("quantidade").value="";
-    document.getElementById("foto").value="";
+function editar(i){
+    const novoNome=prompt("Novo nome:",minis[i].nome);
+    if(novoNome){
+        minis[i].nome=novoNome;
+        salvar();
+        atualizarTela();
+    }
 }
 
-function atualizarGrafico(total,lucro){
+function abrirPopup(i){
+    const cliente=prompt("Nome do cliente:");
+    if(!cliente) return;
 
-    const ctx=document.getElementById("grafico").getContext("2d");
+    const data=new Date().toLocaleDateString();
+
+    if(minis[i].quantidade>0){
+        minis[i].quantidade--;
+        minis[i].vendidos.push({cliente,data});
+        salvar();
+        atualizarTela();
+    }else{
+        alert("Sem estoque!");
+    }
+}
+
+function atualizarGrafico(estoque,lucro){
+    const ctx=document.getElementById("grafico");
 
     if(grafico) grafico.destroy();
 
     grafico=new Chart(ctx,{
         type:"bar",
         data:{
-            labels:["Potencial Estoque","Lucro Real"],
+            labels:["Estoque Potencial","Lucro Real"],
             datasets:[{
-                label:"R$",
-                data:[total,lucro]
+                label:"Financeiro",
+                data:[estoque,lucro]
             }]
         }
     });
 }
 
-function exportarBackup(){
-    const blob=new Blob([JSON.stringify(minis)],{type:"application/json"});
-    const a=document.createElement("a");
-    a.href=URL.createObjectURL(blob);
-    a.download="backup-dom-miniaturas.json";
-    a.click();
-}
+function atualizarTela(){
+    const lista=document.getElementById("lista");
+    const ranking=document.getElementById("ranking");
 
-async function gerarPDF(){
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    let y=10;
+    lista.innerHTML="";
+    ranking.innerHTML="";
 
-    doc.text("Relatório DOM Miniaturas",10,y);
-    y+=10;
+    let totalEstoque=0;
+    let lucroReal=0;
+    let lucroLinha={};
 
-    minis.forEach(m=>{
-        doc.text(`${m.nome} - ${m.linha} - Lucro unit: ${m.valor-m.custo}`,10,y);
-        y+=8;
+    minis.forEach((mini,i)=>{
+
+        if(!mini.vendidos) mini.vendidos=[];
+
+        totalEstoque+=mini.valor*mini.quantidade;
+
+        mini.vendidos.forEach(()=>{
+            const lucro=mini.valor-mini.custo;
+            lucroReal+=lucro;
+            lucroLinha[mini.linha]=(lucroLinha[mini.linha]||0)+lucro;
+        });
+
+        if(modo==="cliente"){
+            lista.innerHTML+=`
+            <div class="card">
+            ${mini.foto?`<img src="${mini.foto}">`:""}
+            <h4>${mini.nome}</h4>
+            <p>${mini.linha}</p>
+            <p>R$ ${mini.valor.toFixed(2)}</p>
+            <p>Disponível: ${mini.quantidade}</p>
+            </div>`;
+        }else{
+            lista.innerHTML+=`
+            <div class="card">
+            ${mini.foto?`<img src="${mini.foto}">`:""}
+            <h4>${mini.nome}</h4>
+            <p>${mini.linha}</p>
+            <p>Venda: R$ ${mini.valor.toFixed(2)}</p>
+            <p>Custo: R$ ${mini.custo.toFixed(2)}</p>
+            <p>Qtd: ${mini.quantidade}</p>
+            <p>Vendidos: ${mini.vendidos.length}</p>
+            <button class="btn-sell" onclick="abrirPopup(${i})">Vendido</button>
+            <button class="btn-edit" onclick="editar(${i})">Editar</button>
+            <button class="btn-danger" onclick="excluir(${i})">Excluir</button>
+            </div>`;
+        }
+
     });
 
-    doc.save("relatorio-dom-miniaturas.pdf");
+    if(modo==="admin"){
+        document.getElementById("totalEstoque").innerText="Estoque Potencial: R$ "+totalEstoque.toFixed(2);
+        document.getElementById("lucroTotal").innerText="Lucro Real: R$ "+lucroReal.toFixed(2);
+
+        const ordenado=Object.entries(lucroLinha).sort((a,b)=>b[1]-a[1]);
+
+        ordenado.forEach((item,pos)=>{
+            ranking.innerHTML+=`
+            <div class="card">
+            <h4>${pos+1}º - ${item[0]}</h4>
+            <p>Lucro: R$ ${item[1].toFixed(2)}</p>
+            </div>`;
+        });
+
+        atualizarGrafico(totalEstoque,lucroReal);
+    }else{
+        document.getElementById("totalEstoque").innerText="";
+        document.getElementById("lucroTotal").innerText="";
+        ranking.innerHTML="";
+        if(grafico) grafico.destroy();
+    }
 }
 
 atualizarTela();
-
 </script>
 
 </body>
