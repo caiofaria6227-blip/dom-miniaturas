@@ -1,231 +1,286 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DOM Miniaturas</title>
 
+<link rel="manifest" href="manifest.json">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 <style>
 body{
-font-family:Arial;
-background:#1b3a2f;
-color:white;
-margin:0;
-padding:15px;
+    margin:0;
+    font-family:Arial;
+    background:#1f3d2b;
+    color:white;
 }
-
-h1{
-text-align:center;
-color:#6bd089;
+header{
+    background:#14281d;
+    padding:15px;
+    text-align:center;
+    font-size:22px;
+    font-weight:bold;
 }
-
-.card{
-background:#244f3f;
-padding:15px;
-margin-bottom:15px;
-border-radius:12px;
-}
+.container{ padding:15px; }
 
 input, select{
-width:100%;
-padding:8px;
-margin:5px 0;
-border-radius:6px;
-border:none;
+    width:100%;
+    padding:8px;
+    margin-bottom:10px;
+    border:none;
+    border-radius:8px;
 }
 
 button{
-padding:10px;
-border:none;
-border-radius:6px;
-cursor:pointer;
-font-weight:bold;
-margin-top:5px;
+    padding:10px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    margin:5px 0;
+    font-weight:bold;
 }
 
-.btn{background:#4CAF50;color:white;}
-.btn-danger{background:#c0392b;color:white;}
-.btn-secondary{background:#3498db;color:white;}
+.btn-primary{ background:#f4c430; }
+.btn-danger{ background:#c0392b; color:white; }
+.btn-edit{ background:#3498db; color:white; }
+.btn-sell{ background:#27ae60; color:white; }
+
+.card{
+    background:#2e5b3c;
+    padding:10px;
+    border-radius:12px;
+    margin-bottom:10px;
+}
 
 img{
-width:60px;
-border-radius:6px;
-margin-top:5px;
+    width:100%;
+    border-radius:8px;
 }
 
-.popup{
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:rgba(0,0,0,0.6);
-display:none;
-justify-content:center;
-align-items:center;
-}
-
-.popup-content{
-background:#244f3f;
-padding:20px;
-border-radius:12px;
-width:90%;
-max-width:400px;
+canvas{
+    background:white;
+    border-radius:10px;
+    padding:10px;
 }
 </style>
 </head>
-
 <body>
 
-<h1>DOM Miniaturas</h1>
+<header>DOM MINIATURAS</header>
 
-<div class="card">
-<h2>Adicionar Estoque</h2>
-<input id="nome" placeholder="Nome da mini">
+<div class="container">
+
+<h3>Adicionar Miniatura</h3>
+
+<input type="text" id="nome" placeholder="Nome">
+
 <select id="linha">
 <option>Mainline</option>
-<option>T-Hunt</option>
-<option>Super T-Hunt</option>
-<option>Silver Series</option>
 <option>Premium</option>
+<option>Silver Series</option>
+<option>Super Treasure Hunt</option>
+<option>Treasure Hunt</option>
+<option>Boulevard</option>
+<option>Car Culture</option>
+<option>Team Transport</option>
+<option>Fast & Furious</option>
+<option>Matchbox</option>
+<option>Outras</option>
 </select>
-<input id="valorPago" type="number" placeholder="Valor pago">
-<input id="valorVenda" type="number" placeholder="Valor venda">
-<input id="quantidade" type="number" placeholder="Quantidade">
+
+<input type="number" id="valor" placeholder="Valor">
+<input type="number" id="quantidade" placeholder="Quantidade">
 <input type="file" id="foto">
-<button class="btn" onclick="addEstoque()">Cadastrar</button>
-</div>
 
-<div class="card">
-<h2>Resumo</h2>
-<p id="lucroReal"></p>
-<p id="potencial"></p>
-<button class="btn-secondary" onclick="exportar()">Exportar Backup</button>
-<input type="file" id="importFile" onchange="importar(event)">
-</div>
+<button class="btn-primary" onclick="salvarMini()">Salvar</button>
 
-<div class="card">
-<h2>Estoque</h2>
-<div id="listaEstoque"></div>
-</div>
+<hr>
 
-<div class="popup" id="popup">
-<div class="popup-content">
-<h3>Editar</h3>
-<input id="editNome">
-<input id="editValorVenda" type="number">
-<button class="btn" onclick="salvarEdicao()">Salvar</button>
-<button class="btn-danger" onclick="fecharPopup()">Cancelar</button>
-</div>
+<h3>Buscar / Filtrar</h3>
+<input type="text" id="busca" placeholder="Buscar por nome" onkeyup="atualizarTela()">
+
+<select id="filtroLinha" onchange="atualizarTela()">
+<option value="">Todas as linhas</option>
+<option>Mainline</option>
+<option>Premium</option>
+<option>Silver Series</option>
+<option>Super Treasure Hunt</option>
+<option>Treasure Hunt</option>
+<option>Boulevard</option>
+<option>Car Culture</option>
+<option>Team Transport</option>
+<option>Fast & Furious</option>
+<option>Matchbox</option>
+<option>Outras</option>
+</select>
+
+<hr>
+
+<h3>Marketplace</h3>
+<div id="lista"></div>
+
+<hr>
+
+<h3>📊 Potencial de Vendas</h3>
+<p id="totalEstoque"></p>
+<canvas id="grafico"></canvas>
+
+<hr>
+
+<button class="btn-primary" onclick="exportarBackup()">📥 Backup JSON</button>
+<button class="btn-primary" onclick="gerarPDF()">📄 Gerar Relatório PDF</button>
+<input type="file" onchange="importarBackup(event)">
+
 </div>
 
 <script>
-let estoque = JSON.parse(localStorage.getItem("estoque")) || [];
-let vendas = JSON.parse(localStorage.getItem("vendas")) || [];
+let minis = JSON.parse(localStorage.getItem("domMiniaturas")) || [];
 let editIndex = null;
 
-function salvar(){
-localStorage.setItem("estoque",JSON.stringify(estoque));
-localStorage.setItem("vendas",JSON.stringify(vendas));
-render();
+function salvarLocal(){
+    localStorage.setItem("domMiniaturas", JSON.stringify(minis));
+    atualizarTela();
 }
 
-function addEstoque(){
-const nome=document.getElementById("nome").value;
-const linha=document.getElementById("linha").value;
-const valorPago=parseFloat(document.getElementById("valorPago").value);
-const valorVenda=parseFloat(document.getElementById("valorVenda").value);
-const quantidade=parseInt(document.getElementById("quantidade").value);
-const foto=document.getElementById("foto").files[0];
+function salvarMini(){
+    const nome = nomeInput.value;
+    const linha = linhaInput.value;
+    const valor = parseFloat(valorInput.value);
+    const quantidade = parseInt(quantidadeInput.value);
+    const fotoInput = document.getElementById("foto");
 
-if(!nome||!valorVenda||!quantidade)return alert("Preencha os campos");
+    const reader = new FileReader();
+    reader.onload = function(){
+        const nova = {nome, linha, valor, quantidade, foto: reader.result};
 
-if(foto){
-const reader=new FileReader();
-reader.onload=function(e){
-estoque.push({nome,linha,valorPago,valorVenda,quantidade,foto:e.target.result});
-salvar();
-};
-reader.readAsDataURL(foto);
-}else{
-estoque.push({nome,linha,valorPago,valorVenda,quantidade,foto:null});
-salvar();
+        if(editIndex !== null){
+            minis[editIndex] = nova;
+            editIndex = null;
+        } else {
+            minis.push(nova);
+        }
+
+        salvarLocal();
+        limpar();
+    }
+
+    if(fotoInput.files[0]){
+        reader.readAsDataURL(fotoInput.files[0]);
+    } else {
+        reader.onload();
+    }
 }
+
+function atualizarTela(){
+    const lista = document.getElementById("lista");
+    const busca = document.getElementById("busca").value.toLowerCase();
+    const filtro = document.getElementById("filtroLinha").value;
+
+    lista.innerHTML="";
+    let total=0;
+
+    minis
+    .filter(m => 
+        m.nome.toLowerCase().includes(busca) &&
+        (filtro=="" || m.linha==filtro)
+    )
+    .forEach((mini,index)=>{
+        total += mini.valor * mini.quantidade;
+
+        lista.innerHTML+=`
+        <div class="card">
+            ${mini.foto? `<img src="${mini.foto}">`:""}
+            <h4>${mini.nome}</h4>
+            <p>${mini.linha}</p>
+            <p>R$ ${mini.valor}</p>
+            <p>Qtd: ${mini.quantidade}</p>
+            <button class="btn-sell" onclick="vender(${index})">Vendido</button>
+            <button class="btn-edit" onclick="editar(${index})">Editar</button>
+            <button class="btn-danger" onclick="excluir(${index})">Excluir</button>
+        </div>`;
+    });
+
+    totalEstoque.innerText="Total projetado: R$ "+total.toFixed(2);
+    atualizarGrafico(total);
 }
 
-function render(){
-const lista=document.getElementById("listaEstoque");
-lista.innerHTML="";
-let potencial=0;
-
-estoque.forEach((item,i)=>{
-potencial+=item.valorVenda*item.quantidade;
-lista.innerHTML+=`
-<div class="card">
-<strong>${item.nome}</strong><br>
-Qtd: ${item.quantidade}<br>
-Venda: R$ ${item.valorVenda}<br>
-<button class="btn" onclick="editar(${i})">Editar</button>
-<button class="btn-danger" onclick="excluir(${i})">Excluir</button>
-${item.foto?`<img src="${item.foto}">`:""}
-</div>
-`;
-});
-
-document.getElementById("potencial").innerText="Potencial: R$ "+potencial.toFixed(2);
-
-let lucro=0;
-vendas.forEach(v=>lucro+=v.lucro);
-document.getElementById("lucroReal").innerText="Lucro Real: R$ "+lucro.toFixed(2);
+function vender(i){
+    if(minis[i].quantidade>0){
+        minis[i].quantidade--;
+        salvarLocal();
+    }
 }
 
 function editar(i){
-editIndex=i;
-document.getElementById("editNome").value=estoque[i].nome;
-document.getElementById("editValorVenda").value=estoque[i].valorVenda;
-document.getElementById("popup").style.display="flex";
-}
-
-function salvarEdicao(){
-estoque[editIndex].nome=document.getElementById("editNome").value;
-estoque[editIndex].valorVenda=parseFloat(document.getElementById("editValorVenda").value);
-fecharPopup();
-salvar();
-}
-
-function fecharPopup(){
-document.getElementById("popup").style.display="none";
+    const m=minis[i];
+    nomeInput.value=m.nome;
+    linhaInput.value=m.linha;
+    valorInput.value=m.valor;
+    quantidadeInput.value=m.quantidade;
+    editIndex=i;
 }
 
 function excluir(i){
-if(confirm("Excluir item?")){
-estoque.splice(i,1);
-salvar();
-}
+    minis.splice(i,1);
+    salvarLocal();
 }
 
-function exportar(){
-const data={estoque,vendas};
-const blob=new Blob([JSON.stringify(data)],{type:"application/json"});
-const a=document.createElement("a");
-a.href=URL.createObjectURL(blob);
-a.download="backup_dom_miniaturas.json";
-a.click();
+function limpar(){
+    nomeInput.value="";
+    valorInput.value="";
+    quantidadeInput.value="";
+    foto.value="";
 }
 
-function importar(event){
-const file=event.target.files[0];
-const reader=new FileReader();
-reader.onload=function(e){
-const data=JSON.parse(e.target.result);
-estoque=data.estoque||[];
-vendas=data.vendas||[];
-salvar();
-};
-reader.readAsText(file);
+let grafico;
+function atualizarGrafico(total){
+    if(grafico) grafico.destroy();
+    grafico=new Chart(grafico,{
+        type:"bar",
+        data:{
+            labels:["Estoque"],
+            datasets:[{label:"R$",data:[total]}]
+        }
+    });
 }
 
-render();
+function exportarBackup(){
+    const blob=new Blob([JSON.stringify(minis)],{type:"application/json"});
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download="backup-dom-miniaturas.json";
+    a.click();
+}
+
+function importarBackup(e){
+    const file=e.target.files[0];
+    const reader=new FileReader();
+    reader.onload=()=>{
+        minis=JSON.parse(reader.result);
+        salvarLocal();
+    }
+    reader.readAsText(file);
+}
+
+async function gerarPDF(){
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    let y=10;
+    doc.text("Relatório DOM Miniaturas",10,y);
+    y+=10;
+
+    minis.forEach(m=>{
+        doc.text(`${m.nome} - ${m.linha} - R$${m.valor} x ${m.quantidade}`,10,y);
+        y+=8;
+    });
+
+    doc.save("relatorio-dom-miniaturas.pdf");
+}
+
+atualizarTela();
 </script>
 
 </body>
