@@ -5,69 +5,61 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DOM Miniaturas</title>
 
-<link rel="manifest" href="manifest.json">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 body{
-    margin:0;
-    font-family:Arial;
-    background:linear-gradient(to right,#0f2027,#203a43,#2c5364);
-    color:white;
+margin:0;
+font-family:Arial;
+background:linear-gradient(to right,#0f2027,#203a43,#2c5364);
+color:white;
 }
 header{
-    background:#14532d;
-    padding:15px;
-    text-align:center;
-    font-size:22px;
-    font-weight:bold;
+background:#14532d;
+padding:15px;
+text-align:center;
+font-size:22px;
+font-weight:bold;
 }
-.container{ padding:15px; }
-
-input, select{
-    width:100%;
-    padding:8px;
-    margin-bottom:10px;
-    border:none;
-    border-radius:8px;
+.container{padding:15px;}
+input,select{
+width:100%;
+padding:8px;
+margin-bottom:10px;
+border:none;
+border-radius:8px;
 }
-
 button{
-    padding:8px;
-    border:none;
-    border-radius:8px;
-    cursor:pointer;
-    margin:4px 2px;
-    font-weight:bold;
+padding:8px;
+border:none;
+border-radius:8px;
+cursor:pointer;
+margin:4px 2px;
+font-weight:bold;
 }
-
-.btn-primary{ background:#2ecc71; color:white; }
-.btn-danger{ background:#c0392b; color:white; }
-.btn-edit{ background:#3498db; color:white; }
-.btn-sell{ background:#27ae60; color:white; }
-.btn-view{ background:#f1c40f; }
-
+.btn-primary{background:#2ecc71;color:white;}
+.btn-danger{background:#c0392b;color:white;}
+.btn-edit{background:#3498db;color:white;}
+.btn-sell{background:#27ae60;color:white;}
+.btn-view{background:#f1c40f;}
 .card{
-    background:#166534;
-    padding:10px;
-    border-radius:12px;
-    margin-bottom:10px;
+background:#166534;
+padding:10px;
+border-radius:12px;
+margin-bottom:10px;
 }
-
 .card img{
-    width:110px;
-    border-radius:8px;
-    margin-bottom:8px;
+width:100px;
+border-radius:8px;
+margin-bottom:8px;
 }
-
 canvas{
-    background:white;
-    border-radius:10px;
-    padding:10px;
+background:white;
+border-radius:10px;
+padding:10px;
 }
 </style>
 </head>
-
 <body>
 
 <header>DOM MINIATURAS</header>
@@ -99,9 +91,6 @@ canvas{
 <input type="file" id="foto">
 
 <button class="btn-primary" onclick="salvarMini()">Adicionar</button>
-
-<hr>
-
 <button class="btn-view" onclick="revelarCustos()">👁 Ver custos</button>
 
 <hr>
@@ -125,175 +114,178 @@ canvas{
 let minis = JSON.parse(localStorage.getItem("domMiniaturas")) || [];
 let vendas = JSON.parse(localStorage.getItem("domVendas")) || [];
 let editIndex = null;
-let grafico = null;
 let mostrarCusto = false;
+let grafico;
 
 function salvarLocal(){
-    localStorage.setItem("domMiniaturas", JSON.stringify(minis));
-    localStorage.setItem("domVendas", JSON.stringify(vendas));
-    atualizarTela();
+localStorage.setItem("domMiniaturas", JSON.stringify(minis));
+localStorage.setItem("domVendas", JSON.stringify(vendas));
+atualizarTela();
 }
 
 function salvarMini(){
 
-    const nome = document.getElementById("nome").value.trim();
-    const tipo = document.getElementById("tipo").value;
-    const custo = parseFloat(document.getElementById("custo").value) || 0;
-    const venda = parseFloat(document.getElementById("venda").value);
-    const quantidade = parseInt(document.getElementById("quantidade").value);
-    const fotoInput = document.getElementById("foto");
+const nome = document.getElementById("nome").value.trim();
+const tipo = document.getElementById("tipo").value;
+const custo = parseFloat(document.getElementById("custo").value) || 0;
+const venda = parseFloat(document.getElementById("venda").value);
+const quantidade = parseInt(document.getElementById("quantidade").value);
+const fotoInput = document.getElementById("foto");
 
-    if(!nome || !venda || !quantidade){
-        alert("Preencha nome, valor de venda e quantidade!");
-        return;
-    }
+if(!nome || isNaN(venda) || isNaN(quantidade)){
+alert("Preencha nome, valor venda e quantidade.");
+return;
+}
 
-    const salvarObjeto = (fotoBase64=null) => {
-        const nova = {
-            nome,
-            tipo,
-            custo,
-            venda,
-            quantidade,
-            foto: fotoBase64
-        };
+function salvarObjeto(fotoBase64){
 
-        if(editIndex !== null){
-            minis[editIndex] = nova;
-            editIndex = null;
-        } else {
-            minis.push(nova);
-        }
+const obj = {
+nome,
+tipo,
+custo,
+venda,
+quantidade,
+foto: fotoBase64 || null
+};
 
-        salvarLocal();
-        limpar();
-    };
+if(editIndex !== null){
+minis[editIndex] = obj;
+editIndex = null;
+}else{
+minis.push(obj);
+}
 
-    if(fotoInput.files && fotoInput.files[0]){
-        const reader = new FileReader();
-        reader.onload = function(e){
-            salvarObjeto(e.target.result);
-        };
-        reader.readAsDataURL(fotoInput.files[0]);
-    } else {
-        salvarObjeto(null);
-    }
+salvarLocal();
+limparCampos();
+}
+
+if(fotoInput.files.length > 0){
+const reader = new FileReader();
+reader.onload = function(e){
+salvarObjeto(e.target.result);
+};
+reader.readAsDataURL(fotoInput.files[0]);
+}else{
+salvarObjeto(null);
+}
 }
 
 function atualizarTela(){
-    const lista = document.getElementById("lista");
-    const resumo = document.getElementById("resumo");
-    const rankingDiv = document.getElementById("ranking");
 
-    lista.innerHTML="";
-    let potencial=0;
-    let lucroTotal=0;
-    let ranking={};
+const lista = document.getElementById("lista");
+const resumo = document.getElementById("resumo");
+const rankingDiv = document.getElementById("ranking");
 
-    minis.forEach((mini,index)=>{
-        const lucroUnit = mini.venda - mini.custo;
-        potencial += mini.venda * mini.quantidade;
-        lucroTotal += lucroUnit * mini.quantidade;
+lista.innerHTML="";
+rankingDiv.innerHTML="";
 
-        if(!ranking[mini.tipo]) ranking[mini.tipo]=0;
-        ranking[mini.tipo]+=lucroUnit * mini.quantidade;
+let potencial=0;
+let lucroTotal=0;
+let ranking={};
 
-        lista.innerHTML+=`
-        <div class="card">
-            ${mini.foto? `<img src="${mini.foto}">`:""}
-            <h4>${mini.nome}</h4>
-            <p><b>${mini.tipo}</b></p>
-            <p>Venda: R$ ${mini.venda.toFixed(2)}</p>
-            <p>Custo: ${mostrarCusto ? "R$ "+mini.custo.toFixed(2) : "****"}</p>
-            <p>Qtd: ${mini.quantidade}</p>
-            <button class="btn-sell" onclick="vender(${index})">Vendido</button>
-            <button class="btn-edit" onclick="editar(${index})">Editar</button>
-            <button class="btn-danger" onclick="excluir(${index})">Excluir</button>
-        </div>`;
-    });
+minis.forEach((mini,index)=>{
 
-    resumo.innerText="Potencial: R$ "+potencial.toFixed(2)+" | Lucro estimado: R$ "+lucroTotal.toFixed(2);
+const lucroUnit = mini.venda - mini.custo;
+potencial += mini.venda * mini.quantidade;
+lucroTotal += lucroUnit * mini.quantidade;
 
-    atualizarGrafico(potencial,lucroTotal);
+if(!ranking[mini.tipo]) ranking[mini.tipo]=0;
+ranking[mini.tipo]+=lucroUnit * mini.quantidade;
 
-    rankingDiv.innerHTML="";
-    Object.entries(ranking)
-    .sort((a,b)=>b[1]-a[1])
-    .forEach(([linha,valor])=>{
-        rankingDiv.innerHTML+= `<p>${linha}: R$ ${valor.toFixed(2)}</p>`;
-    });
+lista.innerHTML+=`
+<div class="card">
+${mini.foto? `<img src="${mini.foto}">`:""}
+<h4>${mini.nome}</h4>
+<p><b>${mini.tipo}</b></p>
+<p>Venda: R$ ${mini.venda.toFixed(2)}</p>
+<p>Custo: ${mostrarCusto ? "R$ "+mini.custo.toFixed(2) : "****"}</p>
+<p>Qtd: ${mini.quantidade}</p>
+<button class="btn-sell" onclick="vender(${index})">Vendido</button>
+<button class="btn-edit" onclick="editar(${index})">Editar</button>
+<button class="btn-danger" onclick="excluir(${index})">Excluir</button>
+</div>`;
+});
+
+resumo.innerText = "Potencial: R$ "+potencial.toFixed(2)+" | Lucro estimado: R$ "+lucroTotal.toFixed(2);
+
+atualizarGrafico(potencial,lucroTotal);
+
+Object.entries(ranking)
+.sort((a,b)=>b[1]-a[1])
+.forEach(([linha,valor])=>{
+rankingDiv.innerHTML += `<p>${linha}: R$ ${valor.toFixed(2)}</p>`;
+});
 }
 
 function vender(i){
-    if(minis[i].quantidade<=0) return;
+if(minis[i].quantidade <= 0) return;
 
-    const cliente = prompt("Nome do cliente:");
-    if(!cliente) return;
+const cliente = prompt("Nome do cliente:");
+if(!cliente) return;
 
-    const data = prompt("Data da venda:");
-    if(!data) return;
+const data = prompt("Data da venda:");
+if(!data) return;
 
-    minis[i].quantidade--;
+minis[i].quantidade--;
 
-    vendas.push({
-        nome:minis[i].nome,
-        cliente,
-        data,
-        valor:minis[i].venda,
-        lucro:minis[i].venda - minis[i].custo
-    });
+vendas.push({
+nome: minis[i].nome,
+cliente,
+data,
+valor: minis[i].venda,
+lucro: minis[i].venda - minis[i].custo
+});
 
-    salvarLocal();
+salvarLocal();
 }
 
 function revelarCustos(){
-    const senha = prompt("Digite a senha:");
-    if(senha==="DOM"){
-        mostrarCusto=true;
-        atualizarTela();
-    } else {
-        alert("Senha incorreta");
-    }
+const senha = prompt("Digite a senha:");
+if(senha === "DOM"){
+mostrarCusto = true;
+atualizarTela();
+}else{
+alert("Senha incorreta");
+}
 }
 
 function editar(i){
-    const m=minis[i];
-    document.getElementById("nome").value=m.nome;
-    document.getElementById("tipo").value=m.tipo;
-    document.getElementById("custo").value=m.custo;
-    document.getElementById("venda").value=m.venda;
-    document.getElementById("quantidade").value=m.quantidade;
-    editIndex=i;
+const m = minis[i];
+document.getElementById("nome").value = m.nome;
+document.getElementById("tipo").value = m.tipo;
+document.getElementById("custo").value = m.custo;
+document.getElementById("venda").value = m.venda;
+document.getElementById("quantidade").value = m.quantidade;
+editIndex = i;
 }
 
 function excluir(i){
-    minis.splice(i,1);
-    salvarLocal();
+minis.splice(i,1);
+salvarLocal();
 }
 
-function limpar(){
-    document.getElementById("nome").value="";
-    document.getElementById("custo").value="";
-    document.getElementById("venda").value="";
-    document.getElementById("quantidade").value="";
-    document.getElementById("foto").value="";
+function limparCampos(){
+document.getElementById("nome").value="";
+document.getElementById("custo").value="";
+document.getElementById("venda").value="";
+document.getElementById("quantidade").value="";
+document.getElementById("foto").value="";
 }
 
 function atualizarGrafico(potencial,lucro){
-    const ctx = document.getElementById("grafico").getContext("2d");
+const ctx = document.getElementById("grafico").getContext("2d");
+if(grafico) grafico.destroy();
 
-    if(grafico) grafico.destroy();
-
-    grafico = new Chart(ctx,{
-        type:"bar",
-        data:{
-            labels:["Potencial","Lucro"],
-            datasets:[{
-                label:"R$",
-                data:[potencial,lucro]
-            }]
-        }
-    });
+grafico = new Chart(ctx,{
+type:"bar",
+data:{
+labels:["Potencial","Lucro"],
+datasets:[{
+label:"R$",
+data:[potencial,lucro]
+}]
+}
+});
 }
 
 atualizarTela();
