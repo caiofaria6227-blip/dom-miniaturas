@@ -179,10 +179,12 @@ const rankingDiv = document.getElementById("ranking");
 lista.innerHTML="";
 rankingDiv.innerHTML="";
 
-let potencial=0;
-let lucroTotal=0;
+let potencialEstoque = 0;
+let lucroEstoque = 0;
+let lucroRealizado = 0;
 let ranking={};
 
+// 🔹 Cálculo estoque atual
 minis.forEach((mini,index)=>{
 
 const custo = Number(mini.custo);
@@ -191,8 +193,8 @@ const qtd = Number(mini.quantidade);
 
 const lucroUnit = venda - custo;
 
-potencial += venda * qtd;
-lucroTotal += lucroUnit * qtd;
+potencialEstoque += venda * qtd;
+lucroEstoque += lucroUnit * qtd;
 
 if(!ranking[mini.tipo]) ranking[mini.tipo]=0;
 ranking[mini.tipo]+=lucroUnit * qtd;
@@ -211,39 +213,29 @@ ${mini.foto? `<img src="${mini.foto}">`:""}
 </div>`;
 });
 
-resumo.innerText = "Potencial: R$ "+potencial.toFixed(2)+" | Lucro estimado: R$ "+lucroTotal.toFixed(2);
+// 🔹 Cálculo vendas realizadas
+vendas.forEach(v=>{
+lucroRealizado += Number(v.lucro);
+});
 
-atualizarGrafico(potencial,lucroTotal);
+const lucroTotalProjetado = lucroEstoque + lucroRealizado;
 
+// 🔹 Exibir resumo profissional
+resumo.innerHTML = `
+📦 Potencial Estoque: R$ ${potencialEstoque.toFixed(2)} <br>
+💰 Lucro Realizado: R$ ${lucroRealizado.toFixed(2)} <br>
+🧠 Lucro Total Projetado: R$ ${lucroTotalProjetado.toFixed(2)}
+`;
+
+atualizarGrafico(potencialEstoque,lucroTotalProjetado);
+
+// 🔹 Ranking
 Object.entries(ranking)
 .sort((a,b)=>b[1]-a[1])
 .forEach(([linha,valor])=>{
 rankingDiv.innerHTML += `<p>${linha}: R$ ${valor.toFixed(2)}</p>`;
 });
 }
-
-function vender(i){
-if(minis[i].quantidade <= 0) return;
-
-const cliente = prompt("Nome do cliente:");
-if(!cliente) return;
-
-const data = prompt("Data da venda:");
-if(!data) return;
-
-minis[i].quantidade--;
-
-vendas.push({
-nome:minis[i].nome,
-cliente,
-data,
-valor:minis[i].venda,
-lucro:minis[i].venda - minis[i].custo
-});
-
-salvarLocal();
-}
-
 function revelarCustos(){
 const senha = prompt("Digite a senha:");
 if(senha === "DOM"){
@@ -298,3 +290,4 @@ atualizarTela();
 
 </body>
 </html>
+
