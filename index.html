@@ -12,12 +12,11 @@
 body{
     margin:0;
     font-family:Arial;
-    background:#0f2027;
     background:linear-gradient(to right,#0f2027,#203a43,#2c5364);
     color:white;
 }
 header{
-    background:#14281d;
+    background:#14532d;
     padding:15px;
     text-align:center;
     font-size:22px;
@@ -49,7 +48,7 @@ button{
 .btn-view{ background:#f1c40f; }
 
 .card{
-    background:#1e8449;
+    background:#166534;
     padding:10px;
     border-radius:12px;
     margin-bottom:10px;
@@ -99,7 +98,7 @@ canvas{
 <input type="number" id="quantidade" placeholder="Quantidade">
 <input type="file" id="foto">
 
-<button class="btn-primary" onclick="salvarMini()">Salvar</button>
+<button class="btn-primary" onclick="salvarMini()">Adicionar</button>
 
 <hr>
 
@@ -136,7 +135,8 @@ function salvarLocal(){
 }
 
 function salvarMini(){
-    const nome = document.getElementById("nome").value;
+
+    const nome = document.getElementById("nome").value.trim();
     const tipo = document.getElementById("tipo").value;
     const custo = parseFloat(document.getElementById("custo").value) || 0;
     const venda = parseFloat(document.getElementById("venda").value);
@@ -144,16 +144,18 @@ function salvarMini(){
     const fotoInput = document.getElementById("foto");
 
     if(!nome || !venda || !quantidade){
-        alert("Preencha os campos obrigatórios!");
+        alert("Preencha nome, valor de venda e quantidade!");
         return;
     }
 
-    const reader = new FileReader();
-
-    reader.onload = function(){
+    const salvarObjeto = (fotoBase64=null) => {
         const nova = {
-            nome,tipo,custo,venda,quantidade,
-            foto: reader.result || null
+            nome,
+            tipo,
+            custo,
+            venda,
+            quantidade,
+            foto: fotoBase64
         };
 
         if(editIndex !== null){
@@ -165,12 +167,16 @@ function salvarMini(){
 
         salvarLocal();
         limpar();
-    }
+    };
 
-    if(fotoInput.files[0]){
+    if(fotoInput.files && fotoInput.files[0]){
+        const reader = new FileReader();
+        reader.onload = function(e){
+            salvarObjeto(e.target.result);
+        };
         reader.readAsDataURL(fotoInput.files[0]);
     } else {
-        reader.onload();
+        salvarObjeto(null);
     }
 }
 
@@ -224,7 +230,7 @@ function vender(i){
     const cliente = prompt("Nome do cliente:");
     if(!cliente) return;
 
-    const data = prompt("Data da venda (ex: 02/03/2026):");
+    const data = prompt("Data da venda:");
     if(!data) return;
 
     minis[i].quantidade--;
