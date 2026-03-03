@@ -5,64 +5,72 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DOM Miniaturas</title>
 
-<link rel="manifest" href="manifest.json">
-
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js"></script>
-
 <style>
 body{
 font-family:Arial;
 background:#1b3a2f;
 color:white;
 margin:0;
-padding:20px;
+padding:15px;
 }
 
 h1{
 text-align:center;
-color:#4CAF50;
+color:#6bd089;
 }
 
 .card{
 background:#244f3f;
 padding:15px;
 margin-bottom:15px;
-border-radius:10px;
+border-radius:12px;
 }
 
 input, select{
 width:100%;
 padding:8px;
 margin:5px 0;
-border-radius:5px;
+border-radius:6px;
 border:none;
 }
 
 button{
 padding:10px;
-margin-top:5px;
 border:none;
 border-radius:6px;
 cursor:pointer;
 font-weight:bold;
+margin-top:5px;
 }
 
-.btn{
-background:#4CAF50;
-color:white;
+.btn{background:#4CAF50;color:white;}
+.btn-danger{background:#c0392b;color:white;}
+.btn-secondary{background:#3498db;color:white;}
+
+img{
+width:60px;
+border-radius:6px;
+margin-top:5px;
 }
 
-.btn-danger{
-background:#b33939;
-color:white;
+.popup{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.6);
+display:none;
+justify-content:center;
+align-items:center;
 }
 
-canvas{
+.popup-content{
 background:#244f3f;
-border-radius:10px;
-margin-top:20px;
+padding:20px;
+border-radius:12px;
+width:90%;
+max-width:400px;
 }
 </style>
 </head>
@@ -73,7 +81,6 @@ margin-top:20px;
 
 <div class="card">
 <h2>Adicionar Estoque</h2>
-
 <input id="nome" placeholder="Nome da mini">
 <select id="linha">
 <option>Mainline</option>
@@ -82,67 +89,143 @@ margin-top:20px;
 <option>Silver Series</option>
 <option>Premium</option>
 </select>
-
 <input id="valorPago" type="number" placeholder="Valor pago">
-<input id="valorVenda" type="number" placeholder="Valor desejado venda">
+<input id="valorVenda" type="number" placeholder="Valor venda">
 <input id="quantidade" type="number" placeholder="Quantidade">
-
+<input type="file" id="foto">
 <button class="btn" onclick="addEstoque()">Cadastrar</button>
 </div>
 
 <div class="card">
 <h2>Resumo</h2>
-<p id="lucroReal">Lucro Real: R$ 0</p>
-<p id="potencial">Potencial em Estoque: R$ 0</p>
+<p id="lucroReal"></p>
+<p id="potencial"></p>
+<button class="btn-secondary" onclick="exportar()">Exportar Backup</button>
+<input type="file" id="importFile" onchange="importar(event)">
 </div>
 
-<script type="module">
+<div class="card">
+<h2>Estoque</h2>
+<div id="listaEstoque"></div>
+</div>
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+<div class="popup" id="popup">
+<div class="popup-content">
+<h3>Editar</h3>
+<input id="editNome">
+<input id="editValorVenda" type="number">
+<button class="btn" onclick="salvarEdicao()">Salvar</button>
+<button class="btn-danger" onclick="fecharPopup()">Cancelar</button>
+</div>
+</div>
 
-const firebaseConfig = {
-apiKey: "AIzaSyAiqv-9d2bUufI6Ez3TybX4gnX9b1ybBkk",
-authDomain: "dom-miniaturas.firebaseapp.com",
-projectId: "dom-miniaturas",
-storageBucket: "dom-miniaturas.firebasestorage.app",
-messagingSenderId: "460160940862",
-appId: "1:460160940862:web:bd8f4e092f12e407428a6f"
+<script>
+let estoque = JSON.parse(localStorage.getItem("estoque")) || [];
+let vendas = JSON.parse(localStorage.getItem("vendas")) || [];
+let editIndex = null;
+
+function salvar(){
+localStorage.setItem("estoque",JSON.stringify(estoque));
+localStorage.setItem("vendas",JSON.stringify(vendas));
+render();
+}
+
+function addEstoque(){
+const nome=document.getElementById("nome").value;
+const linha=document.getElementById("linha").value;
+const valorPago=parseFloat(document.getElementById("valorPago").value);
+const valorVenda=parseFloat(document.getElementById("valorVenda").value);
+const quantidade=parseInt(document.getElementById("quantidade").value);
+const foto=document.getElementById("foto").files[0];
+
+if(!nome||!valorVenda||!quantidade)return alert("Preencha os campos");
+
+if(foto){
+const reader=new FileReader();
+reader.onload=function(e){
+estoque.push({nome,linha,valorPago,valorVenda,quantidade,foto:e.target.result});
+salvar();
 };
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-window.addEstoque = async function(){
-const nome = document.getElementById("nome").value;
-const linha = document.getElementById("linha").value;
-const valorPago = parseFloat(document.getElementById("valorPago").value);
-const valorVenda = parseFloat(document.getElementById("valorVenda").value);
-const quantidade = parseInt(document.getElementById("quantidade").value);
-
-await addDoc(collection(db, "estoque"), {
-nome, linha, valorPago, valorVenda, quantidade
-});
-
-alert("Mini cadastrada com backup na nuvem!");
-calcular();
+reader.readAsDataURL(foto);
+}else{
+estoque.push({nome,linha,valorPago,valorVenda,quantidade,foto:null});
+salvar();
+}
 }
 
-async function calcular(){
-let potencial = 0;
+function render(){
+const lista=document.getElementById("listaEstoque");
+lista.innerHTML="";
+let potencial=0;
 
-const querySnapshot = await getDocs(collection(db, "estoque"));
-querySnapshot.forEach((doc)=>{
-const data = doc.data();
-potencial += data.valorVenda * data.quantidade;
+estoque.forEach((item,i)=>{
+potencial+=item.valorVenda*item.quantidade;
+lista.innerHTML+=`
+<div class="card">
+<strong>${item.nome}</strong><br>
+Qtd: ${item.quantidade}<br>
+Venda: R$ ${item.valorVenda}<br>
+<button class="btn" onclick="editar(${i})">Editar</button>
+<button class="btn-danger" onclick="excluir(${i})">Excluir</button>
+${item.foto?`<img src="${item.foto}">`:""}
+</div>
+`;
 });
 
-document.getElementById("potencial").innerText =
-"Potencial em Estoque: R$ " + potencial.toFixed(2);
+document.getElementById("potencial").innerText="Potencial: R$ "+potencial.toFixed(2);
+
+let lucro=0;
+vendas.forEach(v=>lucro+=v.lucro);
+document.getElementById("lucroReal").innerText="Lucro Real: R$ "+lucro.toFixed(2);
 }
 
-calcular();
+function editar(i){
+editIndex=i;
+document.getElementById("editNome").value=estoque[i].nome;
+document.getElementById("editValorVenda").value=estoque[i].valorVenda;
+document.getElementById("popup").style.display="flex";
+}
 
+function salvarEdicao(){
+estoque[editIndex].nome=document.getElementById("editNome").value;
+estoque[editIndex].valorVenda=parseFloat(document.getElementById("editValorVenda").value);
+fecharPopup();
+salvar();
+}
+
+function fecharPopup(){
+document.getElementById("popup").style.display="none";
+}
+
+function excluir(i){
+if(confirm("Excluir item?")){
+estoque.splice(i,1);
+salvar();
+}
+}
+
+function exportar(){
+const data={estoque,vendas};
+const blob=new Blob([JSON.stringify(data)],{type:"application/json"});
+const a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="backup_dom_miniaturas.json";
+a.click();
+}
+
+function importar(event){
+const file=event.target.files[0];
+const reader=new FileReader();
+reader.onload=function(e){
+const data=JSON.parse(e.target.result);
+estoque=data.estoque||[];
+vendas=data.vendas||[];
+salvar();
+};
+reader.readAsText(file);
+}
+
+render();
 </script>
 
 </body>
