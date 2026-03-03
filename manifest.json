@@ -1,7 +1,7 @@
 {
   "name": "DOM Miniaturas",
   "short_name": "DOM",
-  "start_url": "/dom-miniaturas/index.html",
+  "start_url": "/dom-miniaturas/index.html?v=3",
   "display": "standalone",
   "background_color": "#0f2027",
   "theme_color": "#2ecc71",
