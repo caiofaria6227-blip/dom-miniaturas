@@ -185,21 +185,26 @@ let ranking={};
 
 minis.forEach((mini,index)=>{
 
-const lucroUnit = mini.venda - mini.custo;
-potencial += mini.venda * mini.quantidade;
-lucroTotal += lucroUnit * mini.quantidade;
+const custo = Number(mini.custo) || 0;
+const venda = Number(mini.venda) || 0;
+const quantidade = Number(mini.quantidade) || 0;
+
+const lucroUnit = venda - custo;
+
+potencial += venda * quantidade;
+lucroTotal += lucroUnit * quantidade;
 
 if(!ranking[mini.tipo]) ranking[mini.tipo]=0;
-ranking[mini.tipo]+=lucroUnit * mini.quantidade;
+ranking[mini.tipo]+=lucroUnit * quantidade;
 
 lista.innerHTML+=`
 <div class="card">
 ${mini.foto? `<img src="${mini.foto}">`:""}
-<h4>${mini.nome}</h4>
-<p><b>${mini.tipo}</b></p>
-<p>Venda: R$ ${mini.venda.toFixed(2)}</p>
-<p>Custo: ${mostrarCusto ? "R$ "+mini.custo.toFixed(2) : "****"}</p>
-<p>Qtd: ${mini.quantidade}</p>
+<h4>${mini.nome || "Sem nome"}</h4>
+<p><b>${mini.tipo || "Sem tipo"}</b></p>
+<p>Venda: R$ ${venda.toFixed(2)}</p>
+<p>Custo: ${mostrarCusto ? "R$ "+custo.toFixed(2) : "****"}</p>
+<p>Qtd: ${quantidade}</p>
 <button class="btn-sell" onclick="vender(${index})">Vendido</button>
 <button class="btn-edit" onclick="editar(${index})">Editar</button>
 <button class="btn-danger" onclick="excluir(${index})">Excluir</button>
@@ -293,3 +298,4 @@ atualizarTela();
 
 </body>
 </html>
+
