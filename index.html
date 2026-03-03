@@ -228,6 +228,10 @@ function atualizarTela(){
 
     minis.forEach((mini,index)=>{
 
+        if(!mini.vendidos){
+            mini.vendidos = [];
+        }
+
         totalEstoque += mini.valor * mini.quantidade;
 
         mini.vendidos.forEach(v=>{
@@ -270,7 +274,6 @@ function atualizarTela(){
 
     atualizarGrafico(totalEstoque,lucroReal);
 }
-
 function abrirPopup(i){
     vendaIndex=i;
     document.getElementById("popupVenda").style.display="flex";
@@ -374,3 +377,4 @@ atualizarTela();
 
 </body>
 </html>
+
