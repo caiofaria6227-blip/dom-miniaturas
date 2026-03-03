@@ -192,8 +192,8 @@ function salvarMini(){
             valor,
             custo,
             quantidade,
-            foto: reader.result || null,
-            vendidos: minis[editIndex]?.vendidos || []
+            foto: reader.result || (editIndex !== null ? minis[editIndex].foto : null),
+            vendidos: editIndex !== null ? minis[editIndex].vendidos : []
         };
 
         if(editIndex !== null){
@@ -229,7 +229,7 @@ function atualizarTela(){
     minis.forEach((mini,index)=>{
 
         if(!mini.vendidos){
-            mini.vendidos = [];
+            mini.vendidos=[];
         }
 
         totalEstoque += mini.valor * mini.quantidade;
@@ -274,6 +274,7 @@ function atualizarTela(){
 
     atualizarGrafico(totalEstoque,lucroReal);
 }
+
 function abrirPopup(i){
     vendaIndex=i;
     document.getElementById("popupVenda").style.display="flex";
@@ -296,10 +297,7 @@ function confirmarVenda(){
     if(minis[vendaIndex].quantidade>0){
         minis[vendaIndex].quantidade--;
 
-        minis[vendaIndex].vendidos.push({
-            cliente,
-            data
-        });
+        minis[vendaIndex].vendidos.push({cliente,data});
     }
 
     fecharPopup();
@@ -377,4 +375,3 @@ atualizarTela();
 
 </body>
 </html>
-
