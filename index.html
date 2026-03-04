@@ -127,9 +127,6 @@ margin-bottom:20px;
 <canvas id="graficoInvestimento"></canvas>
 
 <h3>📅 Lucro Real por Mês</h3>
-<select id="filtroMes" onchange="atualizarTela()">
-<option value="Todos">Todos os meses</option>
-</select>
 <canvas id="graficoLucroMensal"></canvas>
 
 <hr>
@@ -138,7 +135,13 @@ margin-bottom:20px;
 <div id="ranking"></div>
 
 <hr>
+<h3>📄 Histórico de Vendas</h3>
 
+<select id="filtroMesVendas" onchange="atualizarTela()">
+<option value="Todos">Todas as vendas</option>
+</select>
+
+<div id="listaVendas"></div>
 <h3>📄 Histórico de Vendas</h3>
 <div id="listaVendas"></div>
 
@@ -285,8 +288,8 @@ function atualizarTela(){
 const lista=document.getElementById("lista");
 const rankingDiv=document.getElementById("ranking");
 const listaVendas=document.getElementById("listaVendas");
-const filtroMes=document.getElementById("filtroMes").value;
 const filtroTipo=document.getElementById("filtroTipo").value;
+const filtroMesVendas=document.getElementById("filtroMesVendas").value;
 
 lista.innerHTML="";
 rankingDiv.innerHTML="";
@@ -297,6 +300,8 @@ let ranking={};
 let lucroPorMes={};
 let mesesUnicos=new Set();
 
+
+// ===== MINIATURAS =====
 minis.forEach((mini,index)=>{
 
 if(filtroTipo==="Todos" || mini.tipo===filtroTipo){
@@ -318,6 +323,8 @@ ${mini.foto?`<img src="${mini.foto}">`:""}
 }
 });
 
+
+// ===== VENDAS =====
 vendas.forEach((v,i)=>{
 
 if(!ranking[v.tipo]) ranking[v.tipo]=0;
@@ -325,12 +332,17 @@ ranking[v.tipo]+=v.lucro;
 
 const partes=v.data.split("/");
 if(partes.length===3){
+
 const mesAno=partes[1]+"/"+partes[2];
 mesesUnicos.add(mesAno);
+
 if(!lucroPorMes[mesAno]) lucroPorMes[mesAno]=0;
 lucroPorMes[mesAno]+=v.lucro;
 
-if(filtroMes==="Todos" || filtroMes===mesAno){
+
+// FILTRO APLICADO SOMENTE NAS VENDAS
+if(filtroMesVendas==="Todos" || filtroMesVendas===mesAno){
+
 listaVendas.innerHTML+=`
 <div class="card">
 <p><b>${v.nome}</b></p>
@@ -342,24 +354,35 @@ listaVendas.innerHTML+=`
 <button class="btn-danger" onclick="excluirVenda(${i})">Excluir</button>
 </div>`;
 }
+
 }
 });
 
-const filtroSelect=document.getElementById("filtroMes");
-const mesAtual=filtroMes;
-filtroSelect.innerHTML='<option value="Todos">Todos os meses</option>';
-[...mesesUnicos].sort().forEach(m=>{
-filtroSelect.innerHTML+=`<option value="${m}">${m}</option>`;
-});
-filtroSelect.value=mesAtual;
 
+// ===== POPULAR FILTRO DE VENDAS =====
+const selectVendas=document.getElementById("filtroMesVendas");
+const mesAtual=filtroMesVendas;
+
+selectVendas.innerHTML='<option value="Todos">Todas as vendas</option>';
+
+[...mesesUnicos].sort().forEach(m=>{
+selectVendas.innerHTML+=`<option value="${m}">${m}</option>`;
+});
+
+selectVendas.value=mesAtual;
+
+
+// ===== RANKING =====
 Object.entries(ranking)
 .sort((a,b)=>b[1]-a[1])
 .forEach(([linha,valor])=>{
 rankingDiv.innerHTML+=`<p>${linha}: R$ ${valor.toFixed(2)}</p>`;
 });
 
+
+// ===== GRÁFICOS (SEM FILTRO) =====
 atualizarGraficos(totalInvestido,lucroPorMes);
+
 }
 
 function atualizarGraficos(totalInvestido,lucroPorMes){
