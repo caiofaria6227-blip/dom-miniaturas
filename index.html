@@ -152,26 +152,39 @@ function salvarLocal(){
 }
 
 function salvarMini(){
+
     const nome = document.getElementById("nome").value.trim();
     const tipo = document.getElementById("tipo").value;
-    const custo = Number(document.getElementById("custo").value) || 0;
-    const venda = Number(document.getElementById("venda").value);
-    const quantidade = Number(document.getElementById("quantidade").value);
+    const custoValor = document.getElementById("custo").value;
+    const vendaValor = document.getElementById("venda").value;
+    const quantidadeValor = document.getElementById("quantidade").value;
     const fotoInput = document.getElementById("foto");
 
-    if(!nome || isNaN(venda) || isNaN(quantidade)){
+    if(nome === "" || vendaValor === "" || quantidadeValor === ""){
         alert("Preencha nome, valor venda e quantidade.");
         return;
     }
 
+    const custo = Number(custoValor) || 0;
+    const venda = Number(vendaValor);
+    const quantidade = Number(quantidadeValor);
+
     const concluirSalvar = (fotoBase64) => {
-        // Se estiver editando e não subiu foto nova, mantém a antiga
+
         let fotoFinal = fotoBase64;
-        if(editIndex !== null && !fotoBase64) {
+
+        if(editIndex !== null && !fotoBase64){
             fotoFinal = minis[editIndex].foto;
         }
 
-        const obj = {nome, tipo, custo, venda, quantidade, foto: fotoFinal};
+        const obj = {
+            nome: nome,
+            tipo: tipo,
+            custo: custo,
+            venda: venda,
+            quantidade: quantidade,
+            foto: fotoFinal
+        };
 
         if(editIndex !== null){
             minis[editIndex] = obj;
@@ -186,13 +199,14 @@ function salvarMini(){
 
     if(fotoInput.files.length > 0){
         const reader = new FileReader();
-        reader.onload = e => concluirSalvar(e.target.result);
+        reader.onload = function(e){
+            concluirSalvar(e.target.result);
+        };
         reader.readAsDataURL(fotoInput.files[0]);
     } else {
         concluirSalvar(null);
     }
 }
-
 function atualizarTela(){
     const lista = document.getElementById("lista");
     const resumo = document.getElementById("resumo");
@@ -339,3 +353,4 @@ atualizarTela();
 
 </body>
 </html>
+
