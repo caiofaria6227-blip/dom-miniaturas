@@ -6,7 +6,9 @@
 <title>DOM Miniaturas</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#14532d">
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
 body{
@@ -94,6 +96,7 @@ margin-bottom:20px;
 
 <button class="btn-primary" id="btn-salvar" onclick="salvarMini()">Adicionar</button>
 <button class="btn-view" onclick="revelarCustos()">👁 Ver custos</button>
+<button class="btn-primary" onclick="gerarPDF()">📄 Gerar PDF</button>
 
 <hr>
 
@@ -157,7 +160,6 @@ atualizarTela();
 }
 
 function salvarMini(){
-
 const nome = document.getElementById("nome").value.trim();
 const tipo = document.getElementById("tipo").value;
 const custo = Number(document.getElementById("custo").value) || 0;
@@ -171,13 +173,12 @@ return;
 }
 
 const concluir = (fotoBase64)=>{
-
 let fotoFinal = fotoBase64;
-if(editIndex !== null && !fotoBase64){
-fotoFinal = minis[editIndex].foto;
+if(editIndex!==null && !fotoBase64){
+fotoFinal=minis[editIndex].foto;
 }
 
-const obj = {nome,tipo,custo,venda,quantidade,foto:fotoFinal};
+const obj={nome,tipo,custo,venda,quantidade,foto:fotoFinal};
 
 if(editIndex!==null){
 minis[editIndex]=obj;
@@ -191,123 +192,20 @@ salvarLocal();
 };
 
 if(fotoInput.files.length>0){
-const reader = new FileReader();
-reader.onload = e=>concluir(e.target.result);
+const reader=new FileReader();
+reader.onload=e=>concluir(e.target.result);
 reader.readAsDataURL(fotoInput.files[0]);
 }else{
 concluir(null);
-}
-
-}
-
-function vender(index){
-
-if(minis[index].quantidade<=0){
-alert("Sem estoque!");
-return;
-}
-
-const nomeCliente = prompt("Nome do cliente:");
-if(!nomeCliente) return;
-
-const dataVenda = prompt("Data (dd/mm/aaaa):", new Date().toLocaleDateString("pt-BR"));
-if(!dataVenda) return;
-
-const valorVenda = prompt("Valor vendido (pode dar desconto):", minis[index].venda);
-if(!valorVenda) return;
-
-const lucro = Number(valorVenda) - Number(minis[index].custo);
-
-vendas.push({
-nome:minis[index].nome,
-tipo:minis[index].tipo,
-cliente:nomeCliente,
-data:dataVenda,
-valor:Number(valorVenda),
-lucro:lucro
-});
-
-minis[index].quantidade--;
-salvarLocal();
-
-}
-
-function editarVenda(i){
-
-const v = vendas[i];
-
-const novoCliente = prompt("Editar cliente:", v.cliente);
-if(!novoCliente) return;
-
-const novaData = prompt("Editar data (dd/mm/aaaa):", v.data);
-if(!novaData) return;
-
-const novoValor = prompt("Editar valor:", v.valor);
-if(!novoValor) return;
-
-v.cliente = novoCliente;
-v.data = novaData;
-v.valor = Number(novoValor);
-v.lucro = Number(novoValor) - Number(minis.find(m=>m.nome===v.nome)?.custo || 0);
-
-salvarLocal();
-
-}
-
-function excluirVenda(i){
-if(confirm("Excluir venda?")){
-vendas.splice(i,1);
-salvarLocal();
-}
-}
-
-function editar(i){
-const m=minis[i];
-document.getElementById("nome").value=m.nome;
-document.getElementById("tipo").value=m.tipo;
-document.getElementById("custo").value=m.custo;
-document.getElementById("venda").value=m.venda;
-document.getElementById("quantidade").value=m.quantidade;
-editIndex=i;
-document.getElementById("titulo-form").innerText="Editando Miniatura";
-document.getElementById("btn-salvar").innerText="Salvar Alterações";
-window.scrollTo({top:0,behavior:'smooth'});
-}
-
-function excluir(i){
-if(confirm("Excluir mini?")){
-minis.splice(i,1);
-salvarLocal();
-}
-}
-
-function limparCampos(){
-document.getElementById("nome").value="";
-document.getElementById("custo").value="";
-document.getElementById("venda").value="";
-document.getElementById("quantidade").value="";
-document.getElementById("foto").value="";
-document.getElementById("titulo-form").innerText="Adicionar Miniatura";
-document.getElementById("btn-salvar").innerText="Adicionar";
-editIndex=null;
-}
-
-function revelarCustos(){
-const senha = prompt("Senha:");
-if(senha==="DOM"){
-mostrarCusto=true;
-atualizarTela();
-}else{
-alert("Senha incorreta");
 }
 }
 
 function atualizarTela(){
 
-const lista = document.getElementById("lista");
-const rankingDiv = document.getElementById("ranking");
-const listaVendas = document.getElementById("listaVendas");
-const filtroMes = document.getElementById("filtroMes").value;
+const lista=document.getElementById("lista");
+const rankingDiv=document.getElementById("ranking");
+const listaVendas=document.getElementById("listaVendas");
+const filtroMes=document.getElementById("filtroMes").value;
 
 lista.innerHTML="";
 rankingDiv.innerHTML="";
@@ -316,6 +214,7 @@ listaVendas.innerHTML="";
 let totalInvestido=0;
 let ranking={};
 let lucroPorMes={};
+let mesesUnicos=new Set();
 
 minis.forEach((mini,index)=>{
 
@@ -337,8 +236,6 @@ ${mini.foto?`<img src="${mini.foto}">`:""}
 <button class="btn-danger" onclick="excluir(${index})">Excluir</button>
 </div>`;
 });
-
-let mesesUnicos=new Set();
 
 vendas.forEach((v,i)=>{
 
@@ -362,14 +259,15 @@ listaVendas.innerHTML+=`
 <button class="btn-danger" onclick="excluirVenda(${i})">Excluir</button>
 </div>`;
 }
-
 });
 
 const filtroSelect=document.getElementById("filtroMes");
+const mesSelecionado=filtroMes;
 filtroSelect.innerHTML='<option value="Todos">Todos os meses</option>';
 [...mesesUnicos].sort().forEach(m=>{
 filtroSelect.innerHTML+=`<option value="${m}">${m}</option>`;
 });
+filtroSelect.value=mesSelecionado;
 
 Object.entries(ranking)
 .sort((a,b)=>b[1]-a[1])
@@ -378,32 +276,39 @@ rankingDiv.innerHTML+=`<p>${linha}: R$ ${valor.toFixed(2)}</p>`;
 });
 
 atualizarGraficos(totalInvestido,lucroPorMes);
-
 }
 
 function atualizarGraficos(totalInvestido,lucroPorMes){
 
 const ctx1=document.getElementById("graficoInvestimento").getContext("2d");
 if(graficoInvest) graficoInvest.destroy();
-
 graficoInvest=new Chart(ctx1,{
 type:"bar",
-data:{
-labels:["Total Investido"],
-datasets:[{label:"R$",data:[totalInvestido],backgroundColor:"#2ecc71"}]
-}
+data:{labels:["Total Investido"],datasets:[{label:"R$",data:[totalInvestido],backgroundColor:"#2ecc71"}]}
 });
 
 const ctx2=document.getElementById("graficoLucroMensal").getContext("2d");
 if(graficoLucro) graficoLucro.destroy();
-
 graficoLucro=new Chart(ctx2,{
 type:"bar",
-data:{
-labels:Object.keys(lucroPorMes),
-datasets:[{label:"Lucro R$",data:Object.values(lucroPorMes),backgroundColor:"#3498db"}]
-}
+data:{labels:Object.keys(lucroPorMes),datasets:[{label:"Lucro R$",data:Object.values(lucroPorMes),backgroundColor:"#3498db"}]}
 });
+}
+
+async function gerarPDF(){
+const { jsPDF } = window.jspdf;
+const doc = new jsPDF();
+let y=10;
+
+doc.text("Relatório DOM Miniaturas",10,y);
+y+=10;
+
+minis.forEach(m=>{
+doc.text(`${m.nome} - Estoque: ${m.quantidade}`,10,y);
+y+=8;
+});
+
+doc.save("relatorio-dom-miniaturas.pdf");
 }
 
 atualizarTela();
