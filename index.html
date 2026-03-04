@@ -65,7 +65,7 @@ padding:10px;
 
 <div class="container">
 
-<h3>Adicionar Miniatura</h3>
+<h3 id="titulo-form">Adicionar Miniatura</h3>
 
 <input type="text" id="nome" placeholder="Nome">
 
@@ -89,11 +89,11 @@ padding:10px;
 <input type="number" id="quantidade" placeholder="Quantidade">
 <input type="file" id="foto">
 
-<button class="btn-primary" onclick="salvarMini()">Adicionar</button>
+<button class="btn-primary" id="btn-salvar" onclick="salvarMini()">Adicionar</button>
 <button class="btn-view" onclick="revelarCustos()">👁 Ver custos</button>
 
 <hr>
-<hr>
+
 <h3>Filtrar por Tipo</h3>
 <select id="filtroTipo" onchange="atualizarTela()">
     <option value="Todos">Todos os Tipos</option>
@@ -110,6 +110,7 @@ padding:10px;
     <option>Matchbox</option>
     <option>Outras</option>
 </select>
+
 <hr>
 
 <div id="lista"></div>
@@ -134,75 +135,77 @@ let editIndex = null;
 let mostrarCusto = false;
 let grafico;
 
-// 🔥 LIMPA DADOS ANTIGOS CORROMPIDOS
+// Limpeza de dados antigos
 minis = minis.map(m => ({
-nome: m.nome || "",
-tipo: m.tipo || "Outras",
-custo: Number(m.custo) || 0,
-venda: Number(m.venda) || 0,
-quantidade: Number(m.quantidade) || 0,
-foto: m.foto || null
+    nome: m.nome || "",
+    tipo: m.tipo || "Outras",
+    custo: Number(m.custo) || 0,
+    venda: Number(m.venda) || 0,
+    quantidade: Number(m.quantidade) || 0,
+    foto: m.foto || null
 }));
 
 function salvarLocal(){
-localStorage.setItem("domMiniaturas", JSON.stringify(minis));
-localStorage.setItem("domVendas", JSON.stringify(vendas));
-atualizarTela();
+    localStorage.setItem("domMiniaturas", JSON.stringify(minis));
+    localStorage.setItem("domVendas", JSON.stringify(vendas));
+    atualizarTela();
 }
 
 function salvarMini(){
+    const nome = document.getElementById("nome").value.trim();
+    const tipo = document.getElementById("tipo").value;
+    const custo = Number(document.getElementById("custo").value) || 0;
+    const venda = Number(document.getElementById("venda").value);
+    const quantidade = Number(document.getElementById("quantidade").value);
+    const fotoInput = document.getElementById("foto");
 
-const nome = document.getElementById("nome").value.trim();
-const tipo = document.getElementById("tipo").value;
-const custo = Number(document.getElementById("custo").value) || 0;
-const venda = Number(document.getElementById("venda").value);
-const quantidade = Number(document.getElementById("quantidade").value);
-const fotoInput = document.getElementById("foto");
-
-if(!nome || isNaN(venda) || isNaN(quantidade)){
-alert("Preencha nome, valor venda e quantidade.");
-return;
-}
-
-function salvarObjeto(fotoBase64) {
-    // Se estiver editando e não enviou foto nova, mantém a antiga
-    const fotoExistente = (editIndex !== null) ? minis[editIndex].foto : null;
-    
-    const obj = {
-        nome,
-        tipo,
-        custo,
-        venda,
-        quantidade,
-        foto: fotoBase64 || fotoExistente 
-    };
-
-    if (editIndex !== null) {
-        minis[editIndex] = obj;
-    } else {
-        minis.push(obj);
+    if(!nome || isNaN(venda) || isNaN(quantidade)){
+        alert("Preencha nome, valor venda e quantidade.");
+        return;
     }
 
-    salvarLocal();
-    limparCampos();
+    const concluirSalvar = (fotoBase64) => {
+        // Se estiver editando e não subiu foto nova, mantém a antiga
+        let fotoFinal = fotoBase64;
+        if(editIndex !== null && !fotoBase64) {
+            fotoFinal = minis[editIndex].foto;
+        }
+
+        const obj = {nome, tipo, custo, venda, quantidade, foto: fotoFinal};
+
+        if(editIndex !== null){
+            minis[editIndex] = obj;
+            editIndex = null;
+        } else {
+            minis.push(obj);
+        }
+
+        salvarLocal();
+        limparCampos();
+    };
+
+    if(fotoInput.files.length > 0){
+        const reader = new FileReader();
+        reader.onload = e => concluirSalvar(e.target.result);
+        reader.readAsDataURL(fotoInput.files[0]);
+    } else {
+        concluirSalvar(null);
+    }
 }
 
-function atualizarTela() {
+function atualizarTela(){
     const lista = document.getElementById("lista");
     const resumo = document.getElementById("resumo");
     const rankingDiv = document.getElementById("ranking");
-    const filtro = document.getElementById("filtroTipo").value; // Captura o filtro
+    const filtro = document.getElementById("filtroTipo").value;
 
-    lista.innerHTML = "";
-    rankingDiv.innerHTML = "";
+    lista.innerHTML="";
+    rankingDiv.innerHTML="";
 
     let potencialEstoque = 0;
     let lucroEstoque = 0;
     let lucroRealizado = 0;
-    let ranking = {};
-
-    // 🔹 Filtramos a lista para exibição, mas mantemos os cálculos globais
-    const minisExibidas = minis.filter(m => filtro === "Todos" || m.tipo === filtro);
+    let ranking={};
 
     minis.forEach((mini, index) => {
         const custo = Number(mini.custo);
@@ -210,15 +213,14 @@ function atualizarTela() {
         const qtd = Number(mini.quantidade);
         const lucroUnit = venda - custo;
 
-        // Cálculos continuam sendo do estoque TOTAL (independente do filtro)
+        // Cálculos globais (independente do filtro)
         potencialEstoque += venda * qtd;
         lucroEstoque += lucroUnit * qtd;
-
-        if (!ranking[mini.tipo]) ranking[mini.tipo] = 0;
+        if(!ranking[mini.tipo]) ranking[mini.tipo] = 0;
         ranking[mini.tipo] += lucroUnit * qtd;
 
-        // Só adiciona no HTML se a miniatura passar pelo filtro
-        if (filtro === "Todos" || mini.tipo === filtro) {
+        // Lógica do Filtro para exibição
+        if(filtro === "Todos" || mini.tipo === filtro) {
             lista.innerHTML += `
             <div class="card">
                 ${mini.foto ? `<img src="${mini.foto}">` : ""}
@@ -234,71 +236,57 @@ function atualizarTela() {
         }
     });
 
-    // 🔹 Cálculos de vendas realizadas (Global)
-    vendas.forEach(v => {
-        lucroRealizado += Number(v.lucro);
-    });
-
+    vendas.forEach(v => { lucroRealizado += Number(v.lucro); });
     const lucroTotalProjetado = lucroEstoque + lucroRealizado;
 
     resumo.innerHTML = `
-    📦 Potencial Estoque: R$ ${potencialEstoque.toFixed(2)} <br>
-    💰 Lucro Realizado: R$ ${lucroRealizado.toFixed(2)} <br>
-    🧠 Lucro Total Projetado: R$ ${lucroTotalProjetado.toFixed(2)}
+        📦 Potencial Estoque: R$ ${potencialEstoque.toFixed(2)} <br>
+        💰 Lucro Realizado: R$ ${lucroRealizado.toFixed(2)} <br>
+        🧠 Lucro Total Projetado: R$ ${lucroTotalProjetado.toFixed(2)}
     `;
 
     atualizarGrafico(potencialEstoque, lucroTotalProjetado);
 
     Object.entries(ranking)
-        .sort((a, b) => b[1] - a[1])
-        .forEach(([linha, valor]) => {
-            rankingDiv.innerHTML += `<p>${linha}: R$ ${valor.toFixed(2)}</p>`;
-        });
+    .sort((a,b) => b[1] - a[1])
+    .forEach(([linha, valor]) => {
+        rankingDiv.innerHTML += `<p>${linha}: R$ ${valor.toFixed(2)}</p>`;
+    });
 }
 
 function revelarCustos(){
-const senha = prompt("Digite a senha:");
-if(senha === "DOM"){
-mostrarCusto = true;
-atualizarTela();
-}else{
-alert("Senha incorreta");
+    const senha = prompt("Digite a senha:");
+    if(senha === "DOM"){
+        mostrarCusto = true;
+        atualizarTela();
+    } else {
+        alert("Senha incorreta");
+    }
 }
-}
+
 function vender(index){
+    if(minis[index].quantidade <= 0){
+        alert("Sem estoque disponível!");
+        return;
+    }
+    const nomeCliente = prompt("Nome do cliente:");
+    if(!nomeCliente) return;
 
-if(minis[index].quantidade <= 0){
-alert("Sem estoque disponível!");
-return;
+    const mini = minis[index];
+    const lucroUnit = Number(mini.venda) - Number(mini.custo);
+
+    vendas.push({
+        nome: mini.nome,
+        cliente: nomeCliente,
+        data: new Date().toLocaleDateString("pt-BR"),
+        lucro: lucroUnit
+    });
+
+    mini.quantidade--;
+    salvarLocal();
 }
 
-const nomeCliente = prompt("Nome do cliente:");
-if(!nomeCliente) return;
-
-const dataVenda = new Date().toLocaleDateString("pt-BR");
-
-const mini = minis[index];
-
-const lucroUnit = Number(mini.venda) - Number(mini.custo);
-
-const vendaObj = {
-nome: mini.nome,
-cliente: nomeCliente,
-data: dataVenda,
-lucro: lucroUnit
-};
-
-vendas.push(vendaObj);
-
-// diminui estoque
-mini.quantidade--;
-
-localStorage.setItem("domVendas", JSON.stringify(vendas));
-localStorage.setItem("domMiniaturas", JSON.stringify(minis));
-
-atualizarTela();
-}
-function editar(i) {
+function editar(i){
     const m = minis[i];
     document.getElementById("nome").value = m.nome;
     document.getElementById("tipo").value = m.tipo;
@@ -306,43 +294,44 @@ function editar(i) {
     document.getElementById("venda").value = m.venda;
     document.getElementById("quantidade").value = m.quantidade;
     
-    editIndex = i; // Define qual índice estamos editando
-    
-    // Rola para o topo para facilitar a edição
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    
-    // Opcional: Mudar o texto do botão para "Salvar Alterações"
-    document.querySelector(".btn-primary").innerText = "Salvar Alterações";
+    editIndex = i;
+    document.getElementById("titulo-form").innerText = "Editando Miniatura";
+    document.getElementById("btn-salvar").innerText = "Salvar Alterações";
+    window.scrollTo({top: 0, behavior: 'smooth'});
 }
+
 function excluir(i){
-minis.splice(i,1);
-salvarLocal();
+    if(confirm("Deseja excluir esta miniatura?")){
+        minis.splice(i,1);
+        salvarLocal();
+    }
 }
 
-function limparCampos() {
-    document.getElementById("nome").value = "";
-    document.getElementById("custo").value = "";
-    document.getElementById("venda").value = "";
-    document.getElementById("quantidade").value = "";
-    document.getElementById("foto").value = "";
-    
-    editIndex = null; // Reseta o índice de edição
-    document.querySelector(".btn-primary").innerText = "Adicionar";
+function limparCampos(){
+    document.getElementById("nome").value="";
+    document.getElementById("custo").value="";
+    document.getElementById("venda").value="";
+    document.getElementById("quantidade").value="";
+    document.getElementById("foto").value="";
+    document.getElementById("titulo-form").innerText = "Adicionar Miniatura";
+    document.getElementById("btn-salvar").innerText = "Adicionar";
+    editIndex = null;
 }
+
 function atualizarGrafico(potencial,lucro){
-const ctx = document.getElementById("grafico").getContext("2d");
-if(grafico) grafico.destroy();
-
-grafico = new Chart(ctx,{
-type:"bar",
-data:{
-labels:["Potencial","Lucro"],
-datasets:[{
-label:"R$",
-data:[potencial,lucro]
-}]
-}
-});
+    const ctx = document.getElementById("grafico").getContext("2d");
+    if(grafico) grafico.destroy();
+    grafico = new Chart(ctx,{
+        type:"bar",
+        data:{
+            labels:["Potencial","Lucro"],
+            datasets:[{
+                label:"R$",
+                data:[potencial,lucro],
+                backgroundColor: ['#2ecc71', '#3498db']
+            }]
+        }
+    });
 }
 
 atualizarTela();
@@ -350,5 +339,3 @@ atualizarTela();
 
 </body>
 </html>
-
-
