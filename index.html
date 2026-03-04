@@ -71,7 +71,7 @@ margin-bottom:20px;
 
 <div class="container">
 
-<h3>Adicionar Miniatura</h3>
+<h3 id="tituloForm">Adicionar Miniatura</h3>
 
 <input type="text" id="nome" placeholder="Nome">
 
@@ -149,6 +149,8 @@ margin-bottom:20px;
 let minis = JSON.parse(localStorage.getItem("domMiniaturas")) || [];
 let vendas = JSON.parse(localStorage.getItem("domVendas")) || [];
 let mostrarCusto = false;
+let editIndex = null;
+let editVendaIndex = null;
 let graficoInvest;
 let graficoLucro;
 
@@ -169,6 +171,7 @@ alert("Senha incorreta");
 }
 
 function salvarMini(){
+
 const nome=document.getElementById("nome").value.trim();
 const tipo=document.getElementById("tipo").value;
 const custo=Number(document.getElementById("custo").value)||0;
@@ -182,8 +185,17 @@ return;
 }
 
 const concluir=(fotoBase64)=>{
+
 const obj={nome,tipo,custo,venda,quantidade,foto:fotoBase64};
+
+if(editIndex!==null){
+minis[editIndex]=obj;
+editIndex=null;
+document.getElementById("tituloForm").innerText="Adicionar Miniatura";
+}else{
 minis.push(obj);
+}
+
 document.querySelectorAll("input").forEach(i=>i.value="");
 salvarLocal();
 };
@@ -193,8 +205,22 @@ const reader=new FileReader();
 reader.onload=e=>concluir(e.target.result);
 reader.readAsDataURL(fotoInput.files[0]);
 }else{
-concluir(null);
+concluir(editIndex!==null?minis[editIndex].foto:null);
 }
+}
+
+function editar(index){
+const mini=minis[index];
+editIndex=index;
+
+document.getElementById("nome").value=mini.nome;
+document.getElementById("tipo").value=mini.tipo;
+document.getElementById("custo").value=mini.custo;
+document.getElementById("venda").value=mini.venda;
+document.getElementById("quantidade").value=mini.quantidade;
+
+document.getElementById("tituloForm").innerText="Editando Miniatura";
+window.scrollTo(0,0);
 }
 
 function vender(index){
@@ -215,6 +241,27 @@ const lucro=valorVenda-mini.custo;
 
 vendas.push({nome:mini.nome,cliente,data,valor:valorVenda,lucro,tipo:mini.tipo});
 mini.quantidade--;
+
+salvarLocal();
+}
+
+function editarVenda(index){
+
+const venda=vendas[index];
+
+const cliente=prompt("Cliente:",venda.cliente);
+if(!cliente) return;
+
+const data=prompt("Data (DD/MM/AAAA):",venda.data);
+if(!data) return;
+
+const valor=Number(prompt("Valor:",venda.valor));
+if(isNaN(valor)) return;
+
+venda.cliente=cliente;
+venda.data=data;
+venda.valor=valor;
+venda.lucro=valor - (venda.valor - venda.lucro);
 
 salvarLocal();
 }
@@ -254,17 +301,18 @@ minis.forEach((mini,index)=>{
 
 if(filtroTipo==="Todos" || mini.tipo===filtroTipo){
 
-totalInvestido+=(mini.custo||0)*(mini.quantidade||0);
+totalInvestido+=mini.custo*mini.quantidade;
 
 lista.innerHTML+=`
 <div class="card">
 ${mini.foto?`<img src="${mini.foto}">`:""}
 <h4>${mini.nome}</h4>
 <p><b>${mini.tipo}</b></p>
-<p>Venda: R$ ${(mini.venda||0).toFixed(2)}</p>
-<p>Custo: ${mostrarCusto?"R$ "+(mini.custo||0).toFixed(2):"****"}</p>
+<p>Venda: R$ ${mini.venda.toFixed(2)}</p>
+<p>Custo: ${mostrarCusto?"R$ "+mini.custo.toFixed(2):"****"}</p>
 <p>Qtd: ${mini.quantidade}</p>
 <button class="btn-sell" onclick="vender(${index})">Vendido</button>
+<button class="btn-edit" onclick="editar(${index})">Editar</button>
 <button class="btn-danger" onclick="excluir(${index})">Excluir</button>
 </div>`;
 }
@@ -273,14 +321,14 @@ ${mini.foto?`<img src="${mini.foto}">`:""}
 vendas.forEach((v,i)=>{
 
 if(!ranking[v.tipo]) ranking[v.tipo]=0;
-ranking[v.tipo]+=v.lucro||0;
+ranking[v.tipo]+=v.lucro;
 
 const partes=v.data.split("/");
 if(partes.length===3){
 const mesAno=partes[1]+"/"+partes[2];
 mesesUnicos.add(mesAno);
 if(!lucroPorMes[mesAno]) lucroPorMes[mesAno]=0;
-lucroPorMes[mesAno]+=v.lucro||0;
+lucroPorMes[mesAno]+=v.lucro;
 
 if(filtroMes==="Todos" || filtroMes===mesAno){
 listaVendas.innerHTML+=`
@@ -288,8 +336,9 @@ listaVendas.innerHTML+=`
 <p><b>${v.nome}</b></p>
 <p>Cliente: ${v.cliente}</p>
 <p>Data: ${v.data}</p>
-<p>Valor: R$ ${(v.valor||0).toFixed(2)}</p>
-<p>Lucro: R$ ${(v.lucro||0).toFixed(2)}</p>
+<p>Valor: R$ ${v.valor.toFixed(2)}</p>
+<p>Lucro: R$ ${v.lucro.toFixed(2)}</p>
+<button class="btn-edit" onclick="editarVenda(${i})">Editar</button>
 <button class="btn-danger" onclick="excluirVenda(${i})">Excluir</button>
 </div>`;
 }
