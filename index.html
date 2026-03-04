@@ -191,31 +191,51 @@ concluir(null);
 }
 
 function vender(index){
-if(minis[index].quantidade<=0){
-alert("Sem estoque!");
-return;
+    const mini = minis[index];
+
+    if(mini.quantidade <= 0){
+        alert("Sem estoque disponível!");
+        return;
+    }
+
+    const nomeCliente = prompt("Nome do cliente:");
+    if(!nomeCliente) return;
+
+    // Permitir alterar valor da venda
+    const valorVendaInput = prompt(
+        "Valor da venda:",
+        Number(mini.venda).toFixed(2)
+    );
+    if(!valorVendaInput) return;
+
+    const valorVendaFinal = Number(valorVendaInput);
+
+    if(isNaN(valorVendaFinal)){
+        alert("Valor inválido!");
+        return;
+    }
+
+    // Permitir escolher data manualmente
+    const dataInput = prompt(
+        "Data da venda (dd/mm/aaaa):",
+        new Date().toLocaleDateString("pt-BR")
+    );
+    if(!dataInput) return;
+
+    const lucro = valorVendaFinal - Number(mini.custo);
+
+    vendas.push({
+        nome: mini.nome,
+        cliente: nomeCliente,
+        data: dataInput,
+        valorVenda: valorVendaFinal,
+        lucro: lucro
+    });
+
+    mini.quantidade--;
+
+    salvarLocal();
 }
-
-const cliente = prompt("Nome do cliente:");
-if(!cliente) return;
-
-const data = new Date();
-const mes = data.getMonth()+1;
-const ano = data.getFullYear();
-const lucro = minis[index].venda - minis[index].custo;
-
-vendas.push({
-mini:minis[index].nome,
-cliente,
-mes,
-ano,
-lucro
-});
-
-minis[index].quantidade--;
-salvarLocal();
-}
-
 function editarVenda(i){
 const novoCliente = prompt("Novo nome cliente:", vendas[i].cliente);
 if(novoCliente) vendas[i].cliente = novoCliente;
