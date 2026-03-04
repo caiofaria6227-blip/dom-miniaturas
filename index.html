@@ -164,28 +164,27 @@ alert("Preencha nome, valor venda e quantidade.");
 return;
 }
 
-function salvarObjeto(fotoBase64){
+function salvarObjeto(fotoBase64) {
+    // Se estiver editando e não enviou foto nova, mantém a antiga
+    const fotoExistente = (editIndex !== null) ? minis[editIndex].foto : null;
+    
+    const obj = {
+        nome,
+        tipo,
+        custo,
+        venda,
+        quantidade,
+        foto: fotoBase64 || fotoExistente 
+    };
 
-const obj = {nome,tipo,custo,venda,quantidade,foto:fotoBase64};
+    if (editIndex !== null) {
+        minis[editIndex] = obj;
+    } else {
+        minis.push(obj);
+    }
 
-if(editIndex !== null){
-minis[editIndex] = obj;
-editIndex = null;
-}else{
-minis.push(obj);
-}
-
-salvarLocal();
-limparCampos();
-}
-
-if(fotoInput.files.length > 0){
-const reader = new FileReader();
-reader.onload = e => salvarObjeto(e.target.result);
-reader.readAsDataURL(fotoInput.files[0]);
-}else{
-salvarObjeto(null);
-}
+    salvarLocal();
+    limparCampos();
 }
 
 function atualizarTela() {
@@ -299,29 +298,37 @@ localStorage.setItem("domMiniaturas", JSON.stringify(minis));
 
 atualizarTela();
 }
-function editar(i){
-const m = minis[i];
-document.getElementById("nome").value = m.nome;
-document.getElementById("tipo").value = m.tipo;
-document.getElementById("custo").value = m.custo;
-document.getElementById("venda").value = m.venda;
-document.getElementById("quantidade").value = m.quantidade;
-editIndex = i;
+function editar(i) {
+    const m = minis[i];
+    document.getElementById("nome").value = m.nome;
+    document.getElementById("tipo").value = m.tipo;
+    document.getElementById("custo").value = m.custo;
+    document.getElementById("venda").value = m.venda;
+    document.getElementById("quantidade").value = m.quantidade;
+    
+    editIndex = i; // Define qual índice estamos editando
+    
+    // Rola para o topo para facilitar a edição
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Opcional: Mudar o texto do botão para "Salvar Alterações"
+    document.querySelector(".btn-primary").innerText = "Salvar Alterações";
 }
-
 function excluir(i){
 minis.splice(i,1);
 salvarLocal();
 }
 
-function limparCampos(){
-document.getElementById("nome").value="";
-document.getElementById("custo").value="";
-document.getElementById("venda").value="";
-document.getElementById("quantidade").value="";
-document.getElementById("foto").value="";
+function limparCampos() {
+    document.getElementById("nome").value = "";
+    document.getElementById("custo").value = "";
+    document.getElementById("venda").value = "";
+    document.getElementById("quantidade").value = "";
+    document.getElementById("foto").value = "";
+    
+    editIndex = null; // Reseta o índice de edição
+    document.querySelector(".btn-primary").innerText = "Adicionar";
 }
-
 function atualizarGrafico(potencial,lucro){
 const ctx = document.getElementById("grafico").getContext("2d");
 if(grafico) grafico.destroy();
@@ -343,4 +350,5 @@ atualizarTela();
 
 </body>
 </html>
+
 
